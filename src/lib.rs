@@ -103,6 +103,42 @@ impl Collider{
     }
 }
 
+/// World and screen positions
+
+pub fn world_to_screen_coords(screen_width: f32, screen_height: f32, point: Vec2) -> Vec2 {
+    let x = point.x + screen_width / 2.0;
+    let y = screen_height - (point.y + screen_height / 2.0);
+    Vec2::new(x, y)
+}
+
+/// Helper functions
+
+pub fn draw_actor(
+    // assets: &mut Assets,
+    ctx: &mut Context,
+    actor: &Actor,
+    world_coords: (f32, f32),
+) -> GameResult {
+    let circle = graphics::Mesh::new_circle(
+        ctx,
+        graphics::DrawMode::fill(),
+        Vec2::new(0.0, 0.0),
+        20.0,
+        2.0,
+        Color::WHITE,
+    )?;
+
+    let (screen_w, screen_h) = world_coords;
+    let pos = world_to_screen_coords(screen_w, screen_h, actor.pos);
+    // let image = assets.actor_image(actor);
+    let drawparams = graphics::DrawParam::new()
+        .dest(pos)
+        .offset(Vec2::new(0.5, 0.5));
+    graphics::draw(ctx, &circle, drawparams)
+}
+
+/// Tests
+
 #[cfg(test)]
 mod tests {
     use super::*;

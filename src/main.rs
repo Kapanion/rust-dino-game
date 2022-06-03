@@ -9,7 +9,9 @@ use dino_game::*;
 
 
 struct MainState {
-    dino: Actor
+    dino: Actor,
+    screen_width: f32,
+    screen_height: f32,
 }
 
 impl MainState {
@@ -21,8 +23,12 @@ impl MainState {
             Vec2::new(0.0, 0.0),
             Collider::None,
         );
+        let (width, height) = graphics::drawable_size(ctx);
+
         let s = MainState{
             dino,
+            screen_width: width,
+            screen_height: height,
         };
         Ok(s)
     }
@@ -43,17 +49,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
     
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.8, 0.8, 0.8, 1.0].into());
-        
-        let circle = graphics::Mesh::new_circle(
-            ctx,
-            graphics::DrawMode::fill(),
-            Vec2::new(0.0, 0.0),
-            100.0,
-            2.0,
-            Color::WHITE,
-        )?;
 
-        graphics::draw(ctx, &circle, (self.dino.pos,))?;
+        let coords = (self.screen_width, self.screen_height);
+        
+        draw_actor(ctx, &self.dino, coords)?;
 
         graphics::present(ctx)?;
 
@@ -61,17 +60,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
     }
 }
 
-// Now our main function, which does three things:
-//
-// * First, create a new `ggez::ContextBuilder`
-// object which contains configuration info on things such
-// as screen resolution and window title.
-// * Second, create a `ggez::game::Game` object which will
-// do the work of creating our MainState and running our game.
-// * Then, just call `game.run()` which runs the `Game` mainloop.
+
 pub fn main() -> GameResult {
-    // We add the CARGO_MANIFEST_DIR/resources to the resource paths
-    // so that ggez will look in our cargo project directory for files.
     let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
         let mut path = path::PathBuf::from(manifest_dir);
         path.push("resources");
