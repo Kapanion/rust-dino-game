@@ -1,14 +1,18 @@
 use ggez::{event, GameError};
-use ggez::graphics::{self, Color};
+use ggez::graphics::{self, Color, DrawParam};
 use ggez::{Context, GameResult};
 use glam::*;
 
+type FF32 = (f32, f32);
+
+
 const GROUND_Y_COORD: f32 = -10.0;
+const JUMP_VELOCITY: f32 = 400.0;
 
 /// Actor
 
 pub enum ActorType {
-    Player,
+    Dino,
     Cactus,
 }
 
@@ -18,6 +22,7 @@ pub struct Actor{
     pub velocity: Vec2,
     pub gravity: Vec2,
     pub collider: Collider,
+    pub in_air: bool,
 }
 
 impl Actor{
@@ -28,6 +33,7 @@ impl Actor{
             velocity,
             gravity,
             collider,
+            in_air: false,
         }
     }
 
@@ -36,9 +42,17 @@ impl Actor{
     pub fn update_pos(&mut self, dt: f32){
         self.velocity += self.gravity * dt;
         self.pos += self.velocity * dt;
-        if self.pos.y < GROUND_Y_COORD{
-            self.pos.y = GROUND_Y_COORD;
+        let offs = self.lowest_point_y_offset();
+        if self.pos.y + offs < GROUND_Y_COORD{
+            self.pos.y = GROUND_Y_COORD - offs;
+            self.velocity.y = 0.0;
+            self.in_air = false;
         }
+    }
+
+    fn jump(&mut self, jump_speed: f32){
+        self.velocity.y = jump_speed;
+        self.in_air = true;
     }
 
 
@@ -81,12 +95,19 @@ impl Actor{
             _ => false
         }
     }
+
+    fn lowest_point_y_offset(&self) -> f32{
+        match self.collider{
+            Collider::None => 0.0,
+            Collider::BoxCollider(col) => -col.y,
+        }
+    }
 }
 
 /// Collider
 
 pub enum Collider{
-    BoxCollider(Vec2),
+    BoxCollider(Vec2), // half size
     None
 }
 
@@ -103,11 +124,37 @@ impl Collider{
     }
 }
 
+/// Input
+#[derive(Debug)]
+#[derive(Default)]
+pub struct InputState{
+    jump: bool,
+}
+
+impl InputState{
+    pub fn jump_start(&mut self){
+        self.jump = true;
+    }
+    pub fn jump_end(&mut self){
+        self.jump = false;
+    }
+    pub fn jump(&self) -> bool{
+        self.jump
+    }
+}
+
+pub fn player_handle_input(actor: &mut Actor, input: &mut InputState, dt: f32) {
+    if input.jump() && !actor.in_air {
+        actor.jump(JUMP_VELOCITY);
+        input.jump_end();
+    }
+}
+
 /// World and screen positions
 
-pub fn world_to_screen_coords(screen_width: f32, screen_height: f32, point: Vec2) -> Vec2 {
-    let x = point.x + screen_width / 2.0;
-    let y = screen_height - (point.y + screen_height / 2.0);
+pub fn world_to_screen_coords(screen_size: FF32, point: Vec2) -> Vec2 {
+    let x = point.x + screen_size.0 / 2.0;
+    let y = screen_size.1 - (point.y + screen_size.1 / 2.0);
     Vec2::new(x, y)
 }
 
@@ -117,24 +164,37 @@ pub fn draw_actor(
     // assets: &mut Assets,
     ctx: &mut Context,
     actor: &Actor,
-    world_coords: (f32, f32),
+    screen_size: FF32,
 ) -> GameResult {
     let circle = graphics::Mesh::new_circle(
         ctx,
         graphics::DrawMode::fill(),
         Vec2::new(0.0, 0.0),
-        20.0,
-        2.0,
+        30.0,
+        0.1,
         Color::WHITE,
     )?;
-
-    let (screen_w, screen_h) = world_coords;
-    let pos = world_to_screen_coords(screen_w, screen_h, actor.pos);
+    let pos = world_to_screen_coords(screen_size, actor.pos);
     // let image = assets.actor_image(actor);
     let drawparams = graphics::DrawParam::new()
-        .dest(pos)
-        .offset(Vec2::new(0.5, 0.5));
+        .dest(pos);
     graphics::draw(ctx, &circle, drawparams)
+}
+
+pub fn draw_ground(
+    ctx: &mut Context,
+    width: f32,
+    color: Color,
+    screen_size: FF32,
+) -> GameResult {
+    let line_center_y = GROUND_Y_COORD - width / 2.0;
+    let points: Vec<Vec2> = [(-1000.0, line_center_y), (1000.0, line_center_y)]
+        .into_iter()
+        .map(|pos| world_to_screen_coords(screen_size, Vec2::new(pos.0, pos.1)))
+        .collect();
+    let line = graphics::Mesh::new_line(ctx, &points, width, color)?;
+    let drawparams = graphics::DrawParam::new();
+    graphics::draw(ctx, &line, drawparams)
 }
 
 /// Tests
@@ -148,8 +208,8 @@ mod tests {
         let pos2 = Vec2::new(9.0, 9.0);
         let col1 = Collider::new_box(Vec2::new(5.0, 5.0));
         let col2 = Collider::new_box(Vec2::new(5.0, 5.0));
-        let act1 = Actor::new(ActorType::Player, pos1, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col1);
-        let act2 = Actor::new(ActorType::Player, pos2, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col2);
+        let act1 = Actor::new(ActorType::Dino, pos1, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col1);
+        let act2 = Actor::new(ActorType::Dino, pos2, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col2);
         assert_eq!(act1.check_collision(&act2), true);
     }
     #[test]
@@ -158,8 +218,8 @@ mod tests {
         let pos2 = Vec2::new(11.0, 9.0);
         let col1 = Collider::new_box(Vec2::new(5.0, 5.0));
         let col2 = Collider::new_box(Vec2::new(5.0, 5.0));
-        let act1 = Actor::new(ActorType::Player, pos1, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col1);
-        let act2 = Actor::new(ActorType::Player, pos2, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col2);
+        let act1 = Actor::new(ActorType::Dino, pos1, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col1);
+        let act2 = Actor::new(ActorType::Dino, pos2, Vec2::new(0.0,0.0), Vec2::new(0.0,0.0), col2);
         assert_eq!(act1.check_collision(&act2), false);
     }
 }
