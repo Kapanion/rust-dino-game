@@ -1,10 +1,13 @@
-use ggez::event::{KeyMods, KeyCode};
-use ggez::{event, GameError, timer, conf};
+use ggez::event::{self, KeyMods, KeyCode};
 use ggez::graphics::{self, Color};
+use ggez::{timer, conf};
 use ggez::{Context, GameResult};
+
 use glam::*;
+
 use std::env;
 use std::path;
+
 use dino_game::*;
 
 
@@ -20,16 +23,16 @@ impl MainState {
     fn new(ctx: &mut Context) -> GameResult<MainState> {
         let dino = Actor::new(
             ActorType::Dino,
-            Vec2::new(-100.0, 0.0),
-            Vec2::new(0.0, 0.0),
-            Vec2::new(0.0, -700.0),
-            Collider::BoxCollider(Vec2::new(30.0, 30.0)),
+            v2!(-200.0, 0.0),
+            v2!(0.0, 0.0),
+            v2!(0.0, -700.0),
+            Collider::BoxCollider(v2!(30.0, 30.0)),
         );
 
         let cactus = Actor::new(
             ActorType::Cactus,
-            Vec2::new(240.0, 0.0),
-            Vec2::new(-100.0, 0.0),
+            v2!(240.0, 0.0),
+            v2!(-CACTUS_SPEED, 0.0),
             Vec2::ZERO,
             Collider::BoxCollider(Vec2::new(30.0, 30.0)),
         );
@@ -60,6 +63,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             self.dino.update_pos(dt);
             self.cactus.update_pos(dt);
             self.cactus.check_respawn_right((self.screen_width, self.screen_height));
+
+            if self.dino.check_collision(&self.cactus){
+                event::quit(ctx);
+            }
         }
         Ok(())
     }
