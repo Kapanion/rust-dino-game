@@ -8,9 +8,9 @@ use std::path;
 use dino_game::*;
 
 
-
 struct MainState {
     dino: Actor,
+    cactus: Actor,
     screen_width: f32,
     screen_height: f32,
     input: InputState,
@@ -25,10 +25,20 @@ impl MainState {
             Vec2::new(0.0, -700.0),
             Collider::BoxCollider(Vec2::new(30.0, 30.0)),
         );
+
+        let cactus = Actor::new(
+            ActorType::Cactus,
+            Vec2::new(240.0, 0.0),
+            Vec2::new(-100.0, 0.0),
+            Vec2::ZERO,
+            Collider::BoxCollider(Vec2::new(30.0, 30.0)),
+        );
+
         let (width, height) = graphics::drawable_size(ctx);
 
         let s = MainState{
             dino,
+            cactus,
             screen_width: width,
             screen_height: height,
             input: InputState::default(),
@@ -46,7 +56,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             let dt = 1.0 / (DESIRED_FPS as f32);
 
             player_handle_input(&mut self.dino, &mut self.input, dt);
+            
             self.dino.update_pos(dt);
+            self.cactus.update_pos(dt);
+            self.cactus.check_respawn_right((self.screen_width, self.screen_height));
         }
         Ok(())
     }
@@ -54,11 +67,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.8, 0.8, 0.8, 1.0].into());
 
-        let coords = (self.screen_width, self.screen_height);
+        let screen_size = (self.screen_width, self.screen_height);
 
-        draw_ground(ctx, 40.0, Color::BLACK, coords)?;
+        draw_ground(ctx, 40.0, Color::BLACK, screen_size)?;
 
-        draw_actor(ctx, &self.dino, coords)?;
+        draw_actor(ctx, &self.dino, screen_size)?;
+        draw_actor(ctx, &self.cactus, screen_size)?;
 
 
         graphics::present(ctx)?;
