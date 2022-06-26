@@ -10,7 +10,7 @@ use std::path;
 
 use dino_game::*;
 
-
+use dino_game::core::collision::*;
 struct MainState {
     dino: Actor,
     cactus: Actor,

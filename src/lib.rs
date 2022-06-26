@@ -2,6 +2,7 @@ pub mod actor;
 pub mod util;
 pub mod types_and_constants;
 pub mod collider;
+pub mod core;
 
 pub use actor::*;
 pub use collider::*;
