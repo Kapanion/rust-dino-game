@@ -3,61 +3,48 @@ use ggez::graphics::{self, Color};
 use ggez::{timer, conf};
 use ggez::{Context, GameResult};
 
-use glam::{*, Vec2 as V2};
+use glam::*;
 
 use std::env;
 use std::path;
 
 use dino_game::*;
-use dino_game::ecs::*;
-use dino_game::ecs::ezshape::EzShape;
-use dino_game::ecs::movable::Movable;
 
+// use dino_game::core::collision::*;
 struct MainState {
-    world: World,
-    dino: usize,
-    cactus: usize,
+    dino: Actor,
+    cactus: Actor,
     screen_width: f32,
     screen_height: f32,
-    // input: InputState,
+    input: InputState,
 }
 
 impl MainState {
     fn new(ctx: &mut Context) -> GameResult<MainState> {
-        // DINO
-        let mut world = World::new();
+        let dino = Actor::new(
+            ActorType::Dino,
+            v2!(-200.0, 0.0),
+            v2!(0.0, 0.0),
+            v2!(0.0, -700.0),
+            Collider::BoxCollider(v2!(30.0, 30.0)),
+        );
 
-        // DINO
-        let dino = world.new_entity();
-        world.add_component_to_entity(dino, 
-            movable::Movable::new(
-                v2!(-200.0, 0.0),
-                v2!(0.0, 0.0),
-                v2!(0.0, -700.0),
-            )
+        let cactus = Actor::new(
+            ActorType::Cactus,
+            v2!(240.0, 0.0),
+            v2!(-CACTUS_SPEED, 0.0),
+            Vec2::ZERO,
+            Collider::BoxCollider(Vec2::new(30.0, 30.0)),
         );
-        world.add_component_to_entity(dino, EzShape::new(40.0));
-        
-        // CACTUS
-        let cactus = world.new_entity();
-        world.add_component_to_entity(cactus, 
-            movable::Movable::new(
-                v2!(240.0, 0.0),
-                v2!(-CACTUS_SPEED, 0.0),
-                V2::ZERO,
-            )
-        );
-        world.add_component_to_entity(cactus, EzShape::new(40.0));
 
         let (width, height) = graphics::drawable_size(ctx);
 
         let s = MainState{
-            world,
             dino,
             cactus,
             screen_width: width,
             screen_height: height,
-            // input: InputState::default(),
+            input: InputState::default(),
         };
         Ok(s)
     }
@@ -71,7 +58,15 @@ impl event::EventHandler<ggez::GameError> for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let dt = 1.0 / (DESIRED_FPS as f32);
 
-            self.world.update_all(dt);
+            player_handle_input(&mut self.dino, &mut self.input, dt);
+            
+            self.dino.update_pos(dt);
+            self.cactus.update_pos(dt);
+            self.cactus.check_respawn_right((self.screen_width, self.screen_height));
+
+            if self.dino.check_collision(&self.cactus){
+                event::quit(ctx);
+            }
         }
         Ok(())
     }
@@ -83,10 +78,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         draw_ground(ctx, 40.0, Color::BLACK, screen_size)?;
 
-        for (ezshape, movable) in iter_zip!(self.world, EzShape, Movable)
-        {
-            ezshape.draw(ctx, movable.pos, screen_size)?;
-        }
+        draw_actor(ctx, &self.dino, screen_size)?;
+        draw_actor(ctx, &self.cactus, screen_size)?;
 
 
         graphics::present(ctx)?;
@@ -94,29 +87,29 @@ impl event::EventHandler<ggez::GameError> for MainState {
         Ok(())
     }
 
-    // fn key_down_event(
-    //     &mut self,
-    //     ctx: &mut Context,
-    //     keycode: KeyCode,
-    //     _keymod: KeyMods,
-    //     _repeat: bool,
-    // ) {
-    //     match keycode{
-    //         KeyCode::Space | KeyCode::Up => {
-    //             self.input.jump_start();
-    //         }
-    //         _ => ()
-    //     }
-    // }
+    fn key_down_event(
+        &mut self,
+        ctx: &mut Context,
+        keycode: KeyCode,
+        _keymod: KeyMods,
+        _repeat: bool,
+    ) {
+        match keycode{
+            KeyCode::Space | KeyCode::Up => {
+                self.input.jump_start();
+            }
+            _ => ()
+        }
+    }
 
-    // fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
-    //     match keycode {
-    //         KeyCode::Space | KeyCode::Up => {
-    //             self.input.jump_end();
-    //         }
-    //         _ => (),
-    //     }
-    // }
+    fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
+        match keycode {
+            KeyCode::Space | KeyCode::Up => {
+                self.input.jump_end();
+            }
+            _ => (),
+        }
+    }
 }
 
 

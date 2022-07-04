@@ -1,11 +1,11 @@
-pub mod actor;
+// pub mod actor;
 pub mod util;
 pub mod types_and_constants;
-pub mod collider;
-pub mod core;
+// pub mod collider;
+pub mod ecs;
 
-pub use actor::*;
-pub use collider::*;
+// pub use actor::*;
+// pub use collider::*;
 pub use types_and_constants::*;
 pub use util::*;
 
@@ -41,48 +41,37 @@ impl InputState{
     }
 }
 
-pub fn player_handle_input(actor: &mut Actor, input: &mut InputState, _dt: f32) {
-    if input.jump() && !actor.in_air {
-        actor.jump(JUMP_VELOCITY);
-        input.jump_end();
-    }
-}
+// pub fn player_handle_input(actor: &mut Actor, input: &mut InputState, _dt: f32) {
+//     if input.jump() && !actor.in_air {
+//         actor.jump(JUMP_VELOCITY);
+//         input.jump_end();
+//     }
+// }
 
-/// World and screen positions
 
-pub fn world_to_screen_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
-    let x = point.x + screen_size.0 / 2.0;
-    let y = screen_size.1 - (point.y + screen_size.1 / 2.0);
-    Vec2::new(x, y)
-}
-
-fn screen_bound(screen_size: Screen2, bound: BoundType) -> Vec2{
-    let screen_hsize = (screen_size.0 / 2.0, screen_size.1 / 2.0);
-    Collider::box_bound_offs(Vec2::from(screen_hsize), bound)
-}
 
 /// Helper functions
 
-pub fn draw_actor(
-    // assets: &mut Assets,
-    ctx: &mut Context,
-    actor: &Actor,
-    screen_size: Screen2,
-) -> GameResult {
-    let circle = graphics::Mesh::new_circle(
-        ctx,
-        graphics::DrawMode::fill(),
-        Vec2::new(0.0, 0.0),
-        30.0,
-        0.1,
-        Color::WHITE,
-    )?;
-    let pos = world_to_screen_coords(screen_size, actor.pos);
-    // let image = assets.actor_image(actor);
-    let drawparams = graphics::DrawParam::new()
-        .dest(pos);
-    graphics::draw(ctx, &circle, drawparams)
-}
+// pub fn draw_actor(
+//     // assets: &mut Assets,
+//     ctx: &mut Context,
+//     actor: &Actor,
+//     screen_size: Screen2,
+// ) -> GameResult {
+//     let circle = graphics::Mesh::new_circle(
+//         ctx,
+//         graphics::DrawMode::fill(),
+//         Vec2::new(0.0, 0.0),
+//         30.0,
+//         0.1,
+//         Color::WHITE,
+//     )?;
+//     let pos = world_to_screen_coords(screen_size, actor.pos);
+//     // let image = assets.actor_image(actor);
+//     let drawparams = graphics::DrawParam::new()
+//         .dest(pos);
+//     graphics::draw(ctx, &circle, drawparams)
+// }
 
 pub fn draw_ground(
     ctx: &mut Context,
