@@ -1,5 +1,3 @@
-// Components
-// pub mod collision;
 pub mod movable;
 pub mod ezshape;
 
@@ -8,6 +6,19 @@ pub mod ezshape;
 use std::cell::{RefCell, RefMut};
 
 use crate::ecs::movable::Movable;
+
+
+pub trait Component{
+    fn start(&mut self){}
+    fn update(&mut self, dt: f32){}
+}
+
+trait ComponentVec {
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+    fn push_none(&mut self);
+    fn update_all(&self, dt: f32);
+}
 
 
 pub struct World {
@@ -73,35 +84,12 @@ impl World {
         }
         None
     }
-    // pub fn borrow_component_vec_1<ComponentType: 'static>(&self) -> Option<&Vec<Option<Box<ComponentType>>>> {
-    //     for component_vec in self.component_vecs.iter() {
-    //         if let Some(component_vec) = component_vec
-    //             .as_any()
-    //             .downcast_ref::<RefCell<Vec<Option<Box<ComponentType>>>>>()
-    //         {
-    //             return Some(component_vec.borrow_mut());
-    //         }
-    //     }
-    //     None
-    // }
 
     pub fn update_all(&self, dt: f32){
         for component_vec in self.component_vecs.iter() {
             component_vec.update_all(dt);
         }
     }
-}
-
-pub trait Component{
-    fn start(&mut self);
-    fn update(&mut self, dt: f32);
-}
-
-trait ComponentVec {
-    fn as_any(&self) -> &dyn std::any::Any;
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
-    fn push_none(&mut self);
-    fn update_all(&self, dt: f32);
 }
 
 impl<T: 'static + Component> ComponentVec for RefCell<Vec<Option<Box<T>>>> {

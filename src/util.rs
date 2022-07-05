@@ -21,33 +21,6 @@ macro_rules! iter_zip {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum BoundType{
-    Left,
-    Right,
-    Up,
-    Down,
-}
-impl BoundType{
-    pub fn horizontal(&self) -> bool{
-        match self{
-            BoundType::Left | BoundType::Right => true,
-            _ => false,
-        }
-    }
-    pub fn vertical(&self) -> bool{
-        !self.horizontal()
-    }
-    pub fn opposite(&self) -> BoundType{
-        match self{
-            BoundType::Up    => BoundType::Down,
-            BoundType::Down  => BoundType::Up,
-            BoundType::Left  => BoundType::Right,
-            BoundType::Right => BoundType::Left,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests{
     use glam::Vec2;

@@ -8,13 +8,13 @@ use glam::*;
 use crate::util::*;
 use super::*;
 
-pub struct EzShape{
+pub struct CircleGraphic {
     radius: f32,
 }
 
-impl EzShape{
-    pub fn new(radius: f32) -> EzShape{
-        EzShape { radius }
+impl CircleGraphic {
+    pub fn new(radius: f32) -> CircleGraphic {
+        CircleGraphic { radius }
     }
 
     pub fn draw(
@@ -40,12 +40,5 @@ impl EzShape{
     }
 }
 
-impl Component for EzShape{
-    fn start(&mut self) {
-        // todo!()
-    }
-
-    fn update(&mut self, dt: f32) {
-        // todo!()
-    }
+impl Component for CircleGraphic {
 }

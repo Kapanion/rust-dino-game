@@ -13,17 +13,6 @@ use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
 use glam::*;
 
-// type Screen2 = Vec2;
-
-
-/// Actor
-
-
-/// Collider
-
-
-
-/// Input
 #[derive(Debug, Default)]
 pub struct InputState{
     jump: bool,

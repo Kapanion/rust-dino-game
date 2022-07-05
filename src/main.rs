@@ -7,10 +7,12 @@ use glam::{*, Vec2 as V2};
 
 use std::env;
 use std::path;
+use std::rc::Rc;
 
 use dino_game::*;
 use dino_game::ecs::*;
-use dino_game::ecs::ezshape::EzShape;
+use dino_game::ecs::movable::collision::BoxCollider;
+use dino_game::ecs::ezshape::CircleGraphic;
 use dino_game::ecs::movable::Movable;
 
 struct MainState {
@@ -29,14 +31,16 @@ impl MainState {
 
         // DINO
         let dino = world.new_entity();
-        world.add_component_to_entity(dino, 
-            movable::Movable::new(
-                v2!(-200.0, 0.0),
-                v2!(0.0, 0.0),
-                v2!(0.0, -700.0),
-            )
+        let mut dino_movable = Movable::new(
+            v2!(-200.0, 500.0),
+            v2!(0.0, 0.0),
+            v2!(0.0, -700.0),
         );
-        world.add_component_to_entity(dino, EzShape::new(40.0));
+        // dino_movable.ground_check_on();
+        let dino_collider = BoxCollider::new(dino_movable.pos, v2!(30.0, 30.0));
+        dino_movable.add_collider(dino_collider);
+        world.add_component_to_entity(dino, dino_movable);
+        world.add_component_to_entity(dino, CircleGraphic::new(40.0));
         
         // CACTUS
         let cactus = world.new_entity();
@@ -47,7 +51,7 @@ impl MainState {
                 V2::ZERO,
             )
         );
-        world.add_component_to_entity(cactus, EzShape::new(40.0));
+        world.add_component_to_entity(cactus, CircleGraphic::new(40.0));
 
         let (width, height) = graphics::drawable_size(ctx);
 
@@ -83,9 +87,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         draw_ground(ctx, 40.0, Color::BLACK, screen_size)?;
 
-        for (ezshape, movable) in iter_zip!(self.world, EzShape, Movable)
+        for (circle_graphic, movable) in iter_zip!(self.world, CircleGraphic, Movable)
         {
-            ezshape.draw(ctx, movable.pos, screen_size)?;
+            circle_graphic.draw(ctx, movable.pos, screen_size)?;
         }
 
 
