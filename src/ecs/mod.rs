@@ -1,5 +1,6 @@
 pub mod movable;
 pub mod ezshape;
+pub mod collision;
 
 // ECS itself:
 
@@ -9,24 +10,24 @@ use crate::ecs::movable::Movable;
 
 
 pub trait Component{
-    fn start(&mut self){}
-    fn update(&mut self, dt: f32){}
+    fn start(&mut self, ecs: &ECS, entity_id: usize){}
+    fn update(&mut self, ecs: &ECS, entity_id: usize, dt: f32){}
 }
 
 trait ComponentVec {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     fn push_none(&mut self);
-    fn update_all(&self, dt: f32);
+    fn update_all(&self, ecs: &ECS, dt: f32);
 }
 
 
-pub struct World {
+pub struct ECS {
     entities_count: usize,
     component_vecs: Vec<Box<dyn ComponentVec>>,
 }
 
-impl World {
+impl ECS {
     pub fn new() -> Self {
         Self {
             entities_count: 0,
@@ -85,9 +86,25 @@ impl World {
         None
     }
 
+    pub fn borrow_component<ComponentType: 'static + Component>(
+        &self,
+        entity_id: usize,
+    ) -> &Option<Box<ComponentType>> {
+        if entity_id < 0 || entity_id >= self.entities_count {
+            return &None;
+        }
+        let mut id: usize = 0;
+        for component in self.borrow_component_vec::<ComponentType>().unwrap().iter_mut(){
+            if entity_id == id{
+                return component;
+            }
+        }
+        &None
+    }
+
     pub fn update_all(&self, dt: f32){
         for component_vec in self.component_vecs.iter() {
-            component_vec.update_all(dt);
+            component_vec.update_all(self, dt);
         }
     }
 }
@@ -105,11 +122,13 @@ impl<T: 'static + Component> ComponentVec for RefCell<Vec<Option<Box<T>>>> {
         self.get_mut().push(None)
     }
 
-    fn update_all(&self, dt: f32) {
+    fn update_all(&self, ecs: &ECS, dt: f32) {
+        let mut id = 0;
         for component in self.borrow_mut().iter_mut(){
             if let Some(component) = component{
-                component.update(dt);
+                component.update(ecs, id, dt);
             }
+            id += 1;
         }
     }
 }

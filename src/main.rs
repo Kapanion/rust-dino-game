@@ -11,12 +11,12 @@ use std::rc::Rc;
 
 use dino_game::*;
 use dino_game::ecs::*;
-use dino_game::ecs::movable::collision::BoxCollider;
+use dino_game::ecs::collision::BoxCollider;
 use dino_game::ecs::ezshape::CircleGraphic;
 use dino_game::ecs::movable::Movable;
 
 struct MainState {
-    world: World,
+    ecs: ECS,
     dino: usize,
     cactus: usize,
     screen_width: f32,
@@ -27,36 +27,37 @@ struct MainState {
 impl MainState {
     fn new(ctx: &mut Context) -> GameResult<MainState> {
         // DINO
-        let mut world = World::new();
+        let mut ecs = ECS::new();
 
         // DINO
-        let dino = world.new_entity();
+        let dino = ecs.new_entity();
         let mut dino_movable = Movable::new(
-            v2!(-200.0, 500.0),
+            v2!(-200.0, 200.0),
             v2!(0.0, 0.0),
             v2!(0.0, -700.0),
         );
         // dino_movable.ground_check_on();
-        let dino_collider = BoxCollider::new(dino_movable.pos, v2!(30.0, 30.0));
+        let dino_collider = BoxCollider::new(&ecs, dino, v2!(30.0, 30.0));
         dino_movable.add_collider(dino_collider);
-        world.add_component_to_entity(dino, dino_movable);
-        world.add_component_to_entity(dino, CircleGraphic::new(40.0));
+        ecs.add_component_to_entity(dino, dino_movable);
+        ecs.add_component_to_entity(dino, CircleGraphic::new(30.0));
         
         // CACTUS
-        let cactus = world.new_entity();
-        world.add_component_to_entity(cactus, 
-            movable::Movable::new(
+        let cactus = ecs.new_entity();
+        ecs.add_component_to_entity(
+            cactus,
+            Movable::new(
                 v2!(240.0, 0.0),
                 v2!(-CACTUS_SPEED, 0.0),
                 V2::ZERO,
             )
         );
-        world.add_component_to_entity(cactus, CircleGraphic::new(40.0));
+        ecs.add_component_to_entity(cactus, CircleGraphic::new(40.0));
 
         let (width, height) = graphics::drawable_size(ctx);
 
         let s = MainState{
-            world,
+            ecs,
             dino,
             cactus,
             screen_width: width,
@@ -75,7 +76,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let dt = 1.0 / (DESIRED_FPS as f32);
 
-            self.world.update_all(dt);
+            self.ecs.update_all(dt);
         }
         Ok(())
     }
@@ -85,9 +86,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         let screen_size = (self.screen_width, self.screen_height);
 
-        draw_ground(ctx, 40.0, Color::BLACK, screen_size)?;
+        draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
 
-        for (circle_graphic, movable) in iter_zip!(self.world, CircleGraphic, Movable)
+        for (circle_graphic, movable) in iter_zip!(self.ecs, CircleGraphic, Movable)
         {
             circle_graphic.draw(ctx, movable.pos, screen_size)?;
         }
@@ -133,9 +134,11 @@ pub fn main() -> GameResult {
         path::PathBuf::from("./resources")
     };
 
+    let (w,h) = SCREEN;
+
     let cb = ggez::ContextBuilder::new("dino game", "Kapanion")
         .window_setup(conf::WindowSetup::default().title("Dino Game"))        
-        .window_mode(conf::WindowMode::default().dimensions(640.0, 480.0))
+        .window_mode(conf::WindowMode::default().dimensions(w, h))
         .add_resource_path(resource_dir);
 
     let (mut ctx, event_loop) = cb.build()?;

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use glam::*;
-use crate::ecs::Component;
+use crate::ecs::*;
 use crate::util::*;
 use crate::ecs::movable::{Movable};
 
@@ -12,7 +12,8 @@ pub struct BoxCollider{
 }
 
 impl BoxCollider{
-    pub fn new(pos: Vec2, half_size: Vec2) -> BoxCollider {
+    pub fn new(ecs: &ECS, entity_id: usize, half_size: Vec2) -> BoxCollider {
+        let pos = Movable::get_pos(ecs, entity_id);
         BoxCollider{
             pos,
             half_size,
@@ -26,7 +27,8 @@ impl BoxCollider{
         point.y <= self.pos.y + self.half_size.y
     }
 
-    fn get_corners(&self) -> [Vec2; 4] {
+    fn get_corners(&mut self, ecs: &ECS, entity_id: usize) -> [Vec2; 4] {
+        self.update_pos(ecs, entity_id);
         let mut arr = [self.pos; 4];
         arr[0].x -= self.half_size.x;  arr[0].y -= self.half_size.y;
         arr[1].x -= self.half_size.x;  arr[1].y += self.half_size.y;
@@ -35,13 +37,13 @@ impl BoxCollider{
         arr
     }
 
-    fn check_collision(&self, other: &Self) -> bool {
-        for corner in other.get_corners(){
+    pub fn check_collision(&mut self, ecs: &ECS, entity_id: usize, other: &mut Self) -> bool {
+        for corner in other.get_corners(ecs, entity_id){
             if self.contains_point(corner) {
                 return true;
             }
         }
-        for corner in self.get_corners(){
+        for corner in self.get_corners(ecs, entity_id){
             if other.contains_point(corner) {
                 return true;
             }
@@ -58,12 +60,13 @@ impl BoxCollider{
         }
     }
 
-    pub fn get_bound(&self, bound: BoundType) -> Vec2{
+    pub fn get_bound(&mut self, ecs: &ECS, entity_id: usize, bound: BoundType) -> Vec2{
+        self.update_pos(ecs, entity_id);
         self.pos + self.get_bound_offset(bound)
     }
 
-    pub fn update_pos(&mut self, new_pos: Vec2){
-        self.pos = new_pos;
+    fn update_pos(&mut self, ecs: &ECS, entity_id: usize){
+        self.pos = Movable::get_pos(ecs, entity_id);
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::types_and_constants::*;
 use glam::*;
+use crate::ecs::collision::BoundType;
 
 #[macro_export]
 macro_rules! v2 {
@@ -43,6 +44,6 @@ pub fn world_to_screen_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
 }
 
 // fn screen_bound(screen_size: Screen2, bound: BoundType) -> Vec2{
-//     let screen_hsize = (screen_size.0 / 2.0, screen_size.1 / 2.0);
-//     Collider::box_bound_offs(Vec2::from(screen_hsize), bound)
+//     let screen_size_h = (screen_size.0 / 2.0, screen_size.1 / 2.0);
+//     BoxCollider::box_bound_offs(Vec2::from(screen_size_h), bound)
 // }
