@@ -5,20 +5,14 @@ pub mod collision;
 // ECS itself:
 
 use std::cell::{RefCell, RefMut};
+use std::fmt::Debug;
 
 use crate::ecs::movable::Movable;
-
-
-pub trait Component{
-    fn start(&mut self, ecs: &mut ECS, entity_id: usize){}
-    fn update(&mut self, ecs: &mut ECS, entity_id: usize, dt: f32){}
-}
 
 trait ComponentVec {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     fn push_none(&mut self);
-    fn update_all(&mut self, ecs: &mut ECS, dt: f32);
 }
 
 
@@ -44,7 +38,7 @@ impl ECS {
         entity_id
     }
 
-    pub fn add_component_to_entity<ComponentType: 'static + Component>(
+    pub fn add_component_to_entity<ComponentType: 'static>(
         &mut self,
         entity: usize,
         component: ComponentType,
@@ -52,33 +46,33 @@ impl ECS {
         for component_vec in self.component_vecs.iter_mut() {
             if let Some(component_vec) = component_vec
                 .as_any_mut()
-                .downcast_mut::<RefCell<Vec<Option<Box<ComponentType>>>>>()
+                .downcast_mut::<Vec<Option<ComponentType>>>()
             {
-                component_vec.get_mut()[entity] = Some(Box::new(component));
+                component_vec[entity] = Some(component);
                 return;
             }
         }
 
-        let mut new_component_vec: Vec<Option<Box<ComponentType>>> =
+        let mut new_component_vec: Vec<Option<ComponentType>> =
             Vec::with_capacity(self.entities_count);
 
         for _ in 0..self.entities_count {
             new_component_vec.push(None);
         }
 
-        new_component_vec[entity] = Some(Box::new(component));
+        new_component_vec[entity] = Some(component);
 
         self.component_vecs
             .push(Box::new(new_component_vec));
     }
 
-    pub fn borrow_component_vec<ComponentType: 'static + Component>(
-        &mut self,
-    ) -> Option<&mut Vec<Option<Box<ComponentType>>>> {
-        for component_vec in self.component_vecs.iter_mut() {
+    pub fn borrow_component_vec<ComponentType: 'static>(
+        &self,
+    ) -> Option<&Vec<Option<ComponentType>>> {
+        for component_vec in self.component_vecs.iter() {
             if let Some(component_vec) = component_vec
-                .as_any_mut()
-                .downcast_mut::<Vec<Option<Box<ComponentType>>>>()
+                .as_any()
+                .downcast_ref::<Vec<Option<ComponentType>>>()
             {
                 return Some(component_vec);
             }
@@ -86,27 +80,43 @@ impl ECS {
         None
     }
 
-    pub fn borrow_component<ComponentType: 'static + Component>(
+    pub fn borrow_component_vec_mut<ComponentType: 'static>(
         &mut self,
-        entity_id: usize,
-    ) -> Option<&mut Box<ComponentType>> {
-        if entity_id < 0 || entity_id >= self.entities_count {
-            return None;
-        }
-        if let Some(mut component_vec) = self.borrow_component_vec::<ComponentType>(){
-            return component_vec[entity_id].as_mut();
+    ) -> Option<&mut Vec<Option<ComponentType>>> {
+        for component_vec in self.component_vecs.iter_mut() {
+            if let Some(component_vec) = component_vec
+                .as_any_mut()
+                .downcast_mut::<Vec<Option<ComponentType>>>()
+            {
+                return Some(component_vec);
+            }
         }
         None
     }
 
-    pub fn update_all(&mut self, dt: f32){
-        for component_vec in self.component_vecs.iter_mut() {
-            component_vec.update_all(self, dt);
+    pub fn get_component<ComponentType: 'static + Copy + Clone + Debug>(
+        &self,
+        entity_id: usize,
+    ) -> Option<ComponentType> {
+        if let Some(component_vec) = self.borrow_component_vec::<ComponentType>(){
+            return component_vec[entity_id];
+        }
+        None
+    }
+
+    pub fn set_component<ComponentType: 'static + Copy + Clone>(
+        &mut self,
+        entity_id: usize,
+        new_component: ComponentType,
+    ){
+        if let Some(component_vec) = self.borrow_component_vec_mut::<ComponentType>(){
+            component_vec[entity_id] = Some(new_component);
         }
     }
+
 }
 
-impl<T: 'static + Component> ComponentVec for Vec<Option<Box<T>>> {
+impl<T: 'static> ComponentVec for Vec<Option<T>> {
     fn as_any(&self) -> &dyn std::any::Any {
         self as &dyn std::any::Any
     }
@@ -117,15 +127,5 @@ impl<T: 'static + Component> ComponentVec for Vec<Option<Box<T>>> {
 
     fn push_none(&mut self) {
         self.push(None)
-    }
-
-    fn update_all(&mut self, ecs: &mut ECS, dt: f32) {
-        let mut id: usize = 0;
-        for component in self{
-            if let Some(component) = component {
-                component.update(ecs, id, dt);
-            }
-            id += 1;
-        }
     }
 }

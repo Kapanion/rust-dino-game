@@ -4,14 +4,31 @@ pub mod types_and_constants;
 // pub mod collider;
 pub mod ecs;
 
-// pub use actor::*;
-// pub use collider::*;
-pub use types_and_constants::*;
-pub use util::*;
+pub mod prelude{
+    // pub use actor::*;
+    // pub use collider::*;
+    pub use types_and_constants::*;
+    pub use util::*;
+    pub use glam::*;
 
-use ggez::graphics::{self, Color};
-use ggez::{Context, GameResult};
-use glam::*;
+    pub use ggez::event::{self, KeyMods, KeyCode};
+    pub use ggez::graphics::{self, Color};
+    pub use ggez::{timer, conf};
+    pub use ggez::{Context, GameResult};
+
+    pub use std::env;
+    pub use std::path;
+    pub use std::rc::Rc;
+
+    pub use crate::*;
+    pub use crate::ecs::*;
+    pub use crate::ecs::collision::BoxCollider;
+    pub use crate::ecs::ezshape::CircleGraphic;
+    pub use crate::ecs::movable::Movable;
+
+}
+
+use prelude::*;
 
 #[derive(Debug, Default)]
 pub struct InputState{

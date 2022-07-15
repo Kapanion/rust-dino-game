@@ -8,6 +8,7 @@ use glam::*;
 use crate::util::*;
 use super::*;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CircleGraphic {
     radius: f32,
 }
@@ -38,7 +39,4 @@ impl CircleGraphic {
             .dest(pos);
         graphics::draw(ctx, &circle, drawparams)
     }
-}
-
-impl Component for CircleGraphic {
 }

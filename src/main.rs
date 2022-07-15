@@ -1,19 +1,4 @@
-use ggez::event::{self, KeyMods, KeyCode};
-use ggez::graphics::{self, Color};
-use ggez::{timer, conf};
-use ggez::{Context, GameResult};
-
-use glam::{*, Vec2 as V2};
-
-use std::env;
-use std::path;
-use std::rc::Rc;
-
-use dino_game::*;
-use dino_game::ecs::*;
-use dino_game::ecs::collision::BoxCollider;
-use dino_game::ecs::ezshape::CircleGraphic;
-use dino_game::ecs::movable::Movable;
+use dino_game::prelude::*;
 
 struct MainState {
     ecs: ECS,
@@ -31,15 +16,15 @@ impl MainState {
 
         // DINO
         let dino = ecs.new_entity();
-        let mut dino_movable = Movable::new(
+        let dino_movable = Movable::new(
             v2!(-200.0, 200.0),
             v2!(0.0, 0.0),
-            v2!(0.0, -700.0),
+            v2!(0.0, -100.0),
         );
-        // dino_movable.ground_check_on();
-        let dino_collider = BoxCollider::new(&ecs, dino, v2!(30.0, 30.0));
-        dino_movable.add_collider(dino_collider);
+        let dino_collider = BoxCollider::new(v2!(30.0, 30.0));
+
         ecs.add_component_to_entity(dino, dino_movable);
+        ecs.add_component_to_entity(dino, dino_collider);
         ecs.add_component_to_entity(dino, CircleGraphic::new(30.0));
         
         // CACTUS
@@ -49,12 +34,14 @@ impl MainState {
             Movable::new(
                 v2!(240.0, 0.0),
                 v2!(-CACTUS_SPEED, 0.0),
-                V2::ZERO,
+                Vec2::ZERO,
             )
         );
         ecs.add_component_to_entity(cactus, CircleGraphic::new(40.0));
 
         let (width, height) = graphics::drawable_size(ctx);
+
+        ecs.new_entity();
 
         let s = MainState{
             ecs,
@@ -76,7 +63,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let dt = 1.0 / (DESIRED_FPS as f32);
 
-            self.ecs.update_all(dt);
+            movable::update_pos(&mut self.ecs, self.dino, dt);
+            movable::update_pos(&mut self.ecs, self.cactus, dt);
         }
         Ok(())
     }
@@ -92,7 +80,6 @@ impl event::EventHandler<ggez::GameError> for MainState {
         {
             circle_graphic.draw(ctx, movable.pos, screen_size)?;
         }
-
 
         graphics::present(ctx)?;
 
