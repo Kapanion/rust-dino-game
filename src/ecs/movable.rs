@@ -17,7 +17,7 @@ pub struct Movable{
 }
 
 impl Movable{
-    pub fn get_pos(ecs: &ECS, entity_id: usize) -> Vec2 {
+    pub fn get_pos(ecs: &mut ECS, entity_id: usize) -> Vec2 {
         // let mut id: usize = 0;
         // for component in ecs.borrow_component_vec::<Movable>().unwrap().iter_mut(){
         //     if entity_id == id{
@@ -45,15 +45,15 @@ impl Movable{
     // pub fn add_collider(&mut self, collider: BoxCollider){
     //     self.collider = Some(collider);
     // }
-    fn update_pos(&mut self, ecs: &ECS, entity_id: usize, dt: f32){
+    fn update_pos(&mut self, ecs: &mut ECS, entity_id: usize, dt: f32){
         self.velocity += self.gravity * dt;
         self.pos += self.velocity * dt;
-        if let Some(mut collider) = ecs.borrow_component::<BoxCollider>(entity_id){
-            self.check_ground_collision(ecs, entity_id, &mut collider);
-        }
+        self.check_ground_collision(ecs, entity_id);
     }
-    fn check_ground_collision(&mut self, ecs: &ECS, entity_id: usize, collider: &mut BoxCollider) {
-        let lowest_point = collider.get_bound(ecs, entity_id, BoundType::Down).y;
+    fn check_ground_collision(&mut self, ecs: &mut ECS, entity_id: usize) {
+        let lowest_point = ecs.borrow_component::<BoxCollider>(entity_id)
+            .unwrap()
+            .get_bound(ecs, entity_id, BoundType::Down).y;
         if lowest_point < GROUND_Y_COORD {
             self.pos.y += GROUND_Y_COORD - lowest_point;
             self.velocity = -self.velocity; //v2!(0.0, 0.0);
@@ -72,7 +72,7 @@ impl Movable{
 }
 
 impl Component for Movable{
-    fn update(&mut self, ecs: &ECS, entity_id: usize, dt: f32){
+    fn update(&mut self, ecs: &mut ECS, entity_id: usize, dt: f32){
         self.update_pos(ecs, entity_id, dt);
     }
 }

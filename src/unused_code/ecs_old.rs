@@ -10,15 +10,15 @@ use crate::ecs::movable::Movable;
 
 
 pub trait Component{
-    fn start(&mut self, ecs: &mut ECS, entity_id: usize){}
-    fn update(&mut self, ecs: &mut ECS, entity_id: usize, dt: f32){}
+    fn start(&mut self, ecs: &ECS, entity_id: usize){}
+    fn update(&mut self, ecs: &ECS, entity_id: usize, dt: f32){}
 }
 
 trait ComponentVec {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     fn push_none(&mut self);
-    fn update_all(&mut self, ecs: &mut ECS, dt: f32);
+    fn update_all(&self, ecs: &ECS, dt: f32);
 }
 
 
@@ -59,54 +59,58 @@ impl ECS {
             }
         }
 
-        let mut new_component_vec: Vec<Option<Box<ComponentType>>> =
+        let mut new_component_vec: Vec<RefCell<Option<Box<ComponentType>>>> =
             Vec::with_capacity(self.entities_count);
 
         for _ in 0..self.entities_count {
-            new_component_vec.push(None);
+            new_component_vec.push(RefCell::new(None));
         }
 
-        new_component_vec[entity] = Some(Box::new(component));
+        new_component_vec[entity] = RefCell::new(Some(Box::new(component)));
 
         self.component_vecs
-            .push(Box::new(new_component_vec));
+            .push(Box::new(RefCell::new(new_component_vec)));
     }
 
     pub fn borrow_component_vec<ComponentType: 'static + Component>(
-        &mut self,
-    ) -> Option<&mut Vec<Option<Box<ComponentType>>>> {
-        for component_vec in self.component_vecs.iter_mut() {
+        &self,
+    ) -> Option<RefMut<Vec<Option<Box<ComponentType>>>>> {
+        for component_vec in self.component_vecs.iter() {
             if let Some(component_vec) = component_vec
-                .as_any_mut()
-                .downcast_mut::<Vec<Option<Box<ComponentType>>>>()
+                .as_any()
+                .downcast_ref::<RefCell<Vec<Option<Box<ComponentType>>>>>()
             {
-                return Some(component_vec);
+                return Some(component_vec.borrow_mut());
             }
         }
         None
     }
 
     pub fn borrow_component<ComponentType: 'static + Component>(
-        &mut self,
+        &self,
         entity_id: usize,
     ) -> Option<&mut Box<ComponentType>> {
         if entity_id < 0 || entity_id >= self.entities_count {
             return None;
         }
-        if let Some(mut component_vec) = self.borrow_component_vec::<ComponentType>(){
-            return component_vec[entity_id].as_mut();
+        let mut id: usize = 0;
+        for component in self.borrow_component_vec::<ComponentType>().unwrap().iter_mut(){
+            if entity_id == id{
+                return component.as_mut();
+            }
+            id += 1;
         }
         None
     }
 
-    pub fn update_all(&mut self, dt: f32){
-        for component_vec in self.component_vecs.iter_mut() {
+    pub fn update_all(&self, dt: f32){
+        for component_vec in self.component_vecs.iter() {
             component_vec.update_all(self, dt);
         }
     }
 }
 
-impl<T: 'static + Component> ComponentVec for Vec<Option<Box<T>>> {
+impl<T: 'static + Component> ComponentVec for RefCell<Vec<RefCell<Option<Box<T>>>>> {
     fn as_any(&self) -> &dyn std::any::Any {
         self as &dyn std::any::Any
     }
@@ -116,13 +120,13 @@ impl<T: 'static + Component> ComponentVec for Vec<Option<Box<T>>> {
     }
 
     fn push_none(&mut self) {
-        self.push(None)
+        self.get_mut().push(RefCell::new(None))
     }
 
-    fn update_all(&mut self, ecs: &mut ECS, dt: f32) {
+    fn update_all(&self, ecs: &ECS, dt: f32) {
         let mut id: usize = 0;
-        for component in self{
-            if let Some(component) = component {
+        for component in self.borrow_mut().iter_mut(){
+            if let Some(component) = component.borrow_mut().as_mut() {
                 component.update(ecs, id, dt);
             }
             id += 1;
