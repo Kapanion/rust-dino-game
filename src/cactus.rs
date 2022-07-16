@@ -117,4 +117,15 @@ impl CactusManager{
         }
         false
     }
+    pub fn ids(&self) -> Vec<usize>{
+        let mut res = Vec::with_capacity(self.pool.cacti.len());
+        for entry in &self.pool.cacti{
+            res.push(entry.id);
+        }
+        res
+    }
+}
+
+pub struct Cactus {
+    sprite: Sprite,
 }

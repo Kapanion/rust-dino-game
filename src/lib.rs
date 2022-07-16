@@ -5,6 +5,7 @@ pub mod types_and_constants;
 pub mod ecs;
 pub mod cactus;
 pub mod input;
+pub mod assets;
 
 pub mod prelude{
     // pub use actor::*;
@@ -33,6 +34,7 @@ pub mod prelude{
 
     pub use crate::cactus::*;
     pub use crate::input::*;
+    pub use crate::assets::*;
 }
 
 use prelude::*;

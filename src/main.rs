@@ -8,54 +8,24 @@ struct MainState {
     screen_width: f32,
     screen_height: f32,
     input: InputState,
+    assets: Assets,
 }
 
 impl MainState {
     fn new(ctx: &mut Context) -> GameResult<MainState> {
-        // ECS
+        let assets = Assets::new(ctx);
+
         let mut ecs = ECS::new();
-
-        // DINO
         let dino = ecs.new_entity();
-        let dino_movable = Movable::new(
-            v2!(-200.0, 200.0),
-            v2!(0.0, 0.0),
-            v2!(0.0, DINO_GRAVITY),
-        );
-        let mut dino_collider = BoxCollider::new(v2!(20., 47.));
-        dino_collider.ground_check_on();
-        let mut dino_sprite = Sprite::new(ctx, "/dino_run_l.png").unwrap();
 
-        ecs.add_component(dino, dino_movable);
-        ecs.add_component(dino, dino_collider);
-        ecs.add_component(dino, dino_sprite);
-        // ecs.add_component(dino, CircleGraphic::new(47.0));
-
-        // CACTI
         const POOL_SIZE: usize = 5;
         let mut cactus_manager = CactusManager::with_capacity(POOL_SIZE, 1.0);
         for _ in 0..POOL_SIZE {
             let cactus = ecs.new_entity();
-            let hs = v2!(51.0, 35.0);
-            ecs.add_component(
-                cactus,
-                Movable::new(
-                    v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + hs.y),
-                    v2!(-CACTUS_SPEED, 0.0),
-                    Vec2::ZERO,
-                )
-            );
-            let mut sprite = Sprite::new(ctx, "/cactus_1.png").unwrap();
-            ecs.add_component(cactus,BoxCollider::new(hs));
-            // ecs.add_component(cactus, CircleGraphic::new(20.0));
-            ecs.add_component(cactus, sprite);
-
             cactus_manager.add_cactus(cactus);
         }
 
         let (width, height) = graphics::drawable_size(ctx);
-
-        ecs.new_entity();
 
         let s = MainState{
             ecs,
@@ -64,8 +34,38 @@ impl MainState {
             screen_width: width,
             screen_height: height,
             input: InputState::default(),
+            assets,
         };
         Ok(s)
+    }
+    fn start(&mut self, ctx: &mut Context) {
+        let dino_movable = Movable::new(
+            v2!(-200.0, 200.0),
+            v2!(0.0, 0.0),
+            v2!(0.0, DINO_GRAVITY),
+        );
+        let mut dino_collider = BoxCollider::new(v2!(20., 47.));
+        dino_collider.ground_check_on();
+
+        self.ecs.add_component(self.dino, dino_movable);
+        self.ecs.add_component(self.dino, dino_collider);
+        self.ecs.add_component(self.dino, Sprite::new(ctx, "/dino_run_l.png").unwrap());
+        // self.ecs.add_component(dino, CircleGraphic::new(47.0));
+
+        for cactus in self.cactus_manager.ids() {
+            let hs = v2!(51.0, 35.0);
+            self.ecs.add_component(
+                cactus,
+                Movable::new(
+                    v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + hs.y),
+                    v2!(-CACTUS_SPEED, 0.0),
+                    Vec2::ZERO,
+                )
+            );
+            self.ecs.add_component(cactus,BoxCollider::new(hs));
+            // self.ecs.add_component(cactus, CircleGraphic::new(20.0));
+            self.ecs.add_component(cactus, Sprite::new(ctx, "/cactus_1.png").unwrap());
+        }
     }
 }
 
@@ -155,6 +155,7 @@ pub fn main() -> GameResult {
 
     let (mut ctx, event_loop) = cb.build()?;
 
-    let state = MainState::new(&mut ctx)?;
+    let mut state = MainState::new(&mut ctx)?;
+    state.start(&mut ctx);
     event::run(ctx, event_loop, state)
 }
