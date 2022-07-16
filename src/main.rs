@@ -3,7 +3,7 @@ use dino_game::prelude::*;
 struct MainState {
     ecs: ECS,
     dino: usize,
-    cactus: usize,
+    cactus_manager: CactusManager,
     screen_width: f32,
     screen_height: f32,
     // input: InputState,
@@ -11,7 +11,7 @@ struct MainState {
 
 impl MainState {
     fn new(ctx: &mut Context) -> GameResult<MainState> {
-        // DINO
+        // ECS
         let mut ecs = ECS::new();
 
         // DINO
@@ -19,7 +19,7 @@ impl MainState {
         let dino_movable = Movable::new(
             v2!(-200.0, 200.0),
             v2!(0.0, 0.0),
-            v2!(0.0, -100.0),
+            v2!(0.0, -1000.0),
         );
         let dino_collider = BoxCollider::new(v2!(30.0, 30.0));
 
@@ -27,17 +27,23 @@ impl MainState {
         ecs.add_component_to_entity(dino, dino_collider);
         ecs.add_component_to_entity(dino, CircleGraphic::new(30.0));
         
-        // CACTUS
-        let cactus = ecs.new_entity();
-        ecs.add_component_to_entity(
-            cactus,
-            Movable::new(
-                v2!(240.0, 0.0),
-                v2!(-CACTUS_SPEED, 0.0),
-                Vec2::ZERO,
-            )
-        );
-        ecs.add_component_to_entity(cactus, CircleGraphic::new(40.0));
+        // CACTI
+        const POOL_SIZE: usize = 5;
+        let mut cactus_manager = CactusManager::with_capacity(POOL_SIZE, 2.0);
+        for _ in 0..POOL_SIZE {
+            let cactus = ecs.new_entity();
+            ecs.add_component_to_entity(
+                cactus,
+                Movable::new(
+                    v2!(SCREEN.0 + 50.0, 0.0),
+                    v2!(-CACTUS_SPEED, 0.0),
+                    Vec2::ZERO,
+                )
+            );
+            ecs.add_component_to_entity(cactus, CircleGraphic::new(20.0));
+
+            cactus_manager.add_cactus(cactus);
+        }
 
         let (width, height) = graphics::drawable_size(ctx);
 
@@ -46,7 +52,7 @@ impl MainState {
         let s = MainState{
             ecs,
             dino,
-            cactus,
+            cactus_manager,
             screen_width: width,
             screen_height: height,
             // input: InputState::default(),
@@ -62,9 +68,11 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let dt = 1.0 / (DESIRED_FPS as f32);
+            let time = timer::time_since_start(ctx).as_secs_f32();
 
-            movable::update_pos(&mut self.ecs, self.dino, dt);
-            movable::update_pos(&mut self.ecs, self.cactus, dt);
+            Movable::update_pos(&mut self.ecs, self.dino, dt);
+            // println!("{:?}", self.ecs.get_component::<Movable>(self.dino).unwrap().pos);
+            self.cactus_manager.update(&mut self.ecs, time, dt);
         }
         Ok(())
     }
@@ -76,10 +84,14 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
 
+        let mut i = 0;
         for (circle_graphic, movable) in iter_zip!(self.ecs, CircleGraphic, Movable)
         {
+            // println!("{}", movable.pos);
             circle_graphic.draw(ctx, movable.pos, screen_size)?;
+            i += 1;
         }
+        // println!("{}", i);
 
         graphics::present(ctx)?;
 

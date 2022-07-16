@@ -3,6 +3,7 @@ pub mod util;
 pub mod types_and_constants;
 // pub mod collider;
 pub mod ecs;
+pub mod cactus;
 
 pub mod prelude{
     // pub use actor::*;
@@ -26,6 +27,7 @@ pub mod prelude{
     pub use crate::ecs::ezshape::CircleGraphic;
     pub use crate::ecs::movable::Movable;
 
+    pub use crate::cactus::*;
 }
 
 use prelude::*;
