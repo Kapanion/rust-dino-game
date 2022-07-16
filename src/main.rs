@@ -22,33 +22,33 @@ impl MainState {
             v2!(0.0, 0.0),
             v2!(0.0, DINO_GRAVITY),
         );
-        let mut dino_collider = BoxCollider::new(v2!(30.0, 30.0));
+        let mut dino_collider = BoxCollider::new(v2!(20., 47.));
         dino_collider.ground_check_on();
+        let mut dino_sprite = Sprite::new(ctx, "/dino_run_l.png").unwrap();
 
-        ecs.add_component_to_entity(dino, dino_movable);
-        ecs.add_component_to_entity(dino, dino_collider);
-        ecs.add_component_to_entity(dino, CircleGraphic::new(30.0));
-        
+        ecs.add_component(dino, dino_movable);
+        ecs.add_component(dino, dino_collider);
+        ecs.add_component(dino, dino_sprite);
+        // ecs.add_component(dino, CircleGraphic::new(47.0));
+
         // CACTI
         const POOL_SIZE: usize = 5;
         let mut cactus_manager = CactusManager::with_capacity(POOL_SIZE, 1.0);
         for _ in 0..POOL_SIZE {
             let cactus = ecs.new_entity();
-            ecs.add_component_to_entity(
+            let hs = v2!(51.0, 35.0);
+            ecs.add_component(
                 cactus,
                 Movable::new(
-                    v2!(SCREEN.0 + 50.0, 0.0),
+                    v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + hs.y),
                     v2!(-CACTUS_SPEED, 0.0),
                     Vec2::ZERO,
                 )
             );
-            ecs.add_component_to_entity(
-                cactus,
-                BoxCollider::new(
-                    v2!(20.0, 20.0)
-                )
-            );
-            ecs.add_component_to_entity(cactus, CircleGraphic::new(20.0));
+            let mut sprite = Sprite::new(ctx, "/cactus_1.png").unwrap();
+            ecs.add_component(cactus,BoxCollider::new(hs));
+            // ecs.add_component(cactus, CircleGraphic::new(20.0));
+            ecs.add_component(cactus, sprite);
 
             cactus_manager.add_cactus(cactus);
         }
@@ -84,7 +84,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
             self.cactus_manager.update(&mut self.ecs, time, dt);
 
             if self.cactus_manager.check_collision(&mut self.ecs, self.dino) {
-                return Err(GameError::WindowError("Game Over".to_owned()));
+                println!("Game over!");
+                let _ = event::quit(ctx);
             }
         }
         Ok(())
@@ -97,14 +98,13 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
 
-        let mut i = 0;
-        for (circle_graphic, movable) in iter_zip!(self.ecs, CircleGraphic, Movable)
-        {
-            // println!("{}", movable.pos);
-            circle_graphic.draw(ctx, movable.pos, screen_size)?;
-            i += 1;
+        for (sprite, movable) in iter_zip!(self.ecs, Sprite, Movable) {
+            sprite.draw(ctx, movable.pos, screen_size)?;
         }
-        // println!("{}", i);
+
+        // for (circle_graphic, movable) in iter_zip!(self.ecs, CircleGraphic, Movable) {
+        //     circle_graphic.draw(ctx, movable.pos, screen_size)?;
+        // }
 
         graphics::present(ctx)?;
 

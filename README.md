@@ -1,7 +1,7 @@
 # Chrome Dino Game Implemented in Rust
 
 A game written with **ggez** crate and 
-custom entity-component system (ECS).
+a custom entity-component system (ECS).
 
 *Note: This project is not yet finished.*
 

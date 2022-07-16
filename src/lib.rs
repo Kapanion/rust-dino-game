@@ -24,9 +24,12 @@ pub mod prelude{
 
     pub use crate::*;
     pub use crate::ecs::*;
-    pub use crate::ecs::collision::BoxCollider;
-    pub use crate::ecs::ezshape::CircleGraphic;
-    pub use crate::ecs::movable::Movable;
+    pub use crate::ecs::{
+        collision::BoxCollider,
+        ezshape::CircleGraphic,
+        movable::Movable,
+        sprite::Sprite,
+    };
 
     pub use crate::cactus::*;
     pub use crate::input::*;

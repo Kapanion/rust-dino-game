@@ -1,20 +1,13 @@
 pub mod movable;
 pub mod ezshape;
 pub mod collision;
-
-// ECS itself:
-
-use std::cell::{RefCell, RefMut};
-use std::fmt::Debug;
-
-use crate::ecs::movable::Movable;
+pub mod sprite;
 
 trait ComponentVec {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     fn push_none(&mut self);
 }
-
 
 pub struct ECS {
     entities_count: usize,
@@ -38,7 +31,7 @@ impl ECS {
         entity_id
     }
 
-    pub fn add_component_to_entity<ComponentType: 'static>(
+    pub fn add_component<ComponentType: 'static>(
         &mut self,
         entity: usize,
         component: ComponentType,
@@ -94,7 +87,7 @@ impl ECS {
         None
     }
 
-    pub fn get_component<ComponentType: 'static + Copy + Clone + Debug>(
+    pub fn get_component<ComponentType: 'static + Copy + Clone>(
         &self,
         entity_id: usize,
     ) -> Option<ComponentType> {
