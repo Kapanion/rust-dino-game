@@ -107,4 +107,14 @@ impl CactusManager{
         }
         self.check_for_next_cactus(ecs, time);
     }
+    pub fn check_collision(&self, ecs: &ECS, entity_id: usize) -> bool{
+        for i in 0..self.pool.cacti.len() {
+            if self.pool.cacti[i].active{
+                if BoxCollider::check_collision(ecs, entity_id, self.pool.cacti[i].id) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 }

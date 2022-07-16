@@ -4,6 +4,7 @@ use crate::prelude::*;
 pub struct BoxCollider{
     half_size: Vec2,
     offset: Vec2,
+    pub ground_check: bool,
 }
 
 impl BoxCollider{
@@ -11,7 +12,12 @@ impl BoxCollider{
         BoxCollider{
             half_size,
             offset: v2!(0.0, 0.0),
+            ground_check: false,
         }
+    }
+
+    pub fn ground_check_on(&mut self){
+        self.ground_check = true;
     }
 
     pub fn with_offset(&self, offset: Vec2) -> BoxCollider{

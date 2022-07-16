@@ -7,6 +7,7 @@ pub struct Movable{
     pub pos: Vec2,
     pub velocity: Vec2,
     pub gravity: Vec2,
+    on_ground: bool,
 }
 
 impl Movable{
@@ -15,6 +16,7 @@ impl Movable{
             pos,
             velocity,
             gravity,
+            on_ground: false,
         }
     }
     pub fn update_pos(ecs: &mut ECS, entity_id: usize, dt: f32){
@@ -30,15 +32,22 @@ impl Movable{
     fn check_ground_collision(ecs: &ECS, entity_id: usize, mut mov: Movable) -> Movable{
         let col = ecs.get_component::<BoxCollider>(entity_id);
         if col == None {return mov}
-        let lowest_point_offs = col
-            .unwrap()
-            .get_bound_offset(BoundType::Down).y;
+        let col = col.unwrap();
+        if !col.ground_check {return mov}
+        let lowest_point_offs = col.get_bound_offset(BoundType::Down).y;
         let lowest_point = mov.pos.y + lowest_point_offs;
         if lowest_point < GROUND_Y_COORD {
             mov.pos.y = GROUND_Y_COORD - lowest_point_offs;
-            mov.velocity = -mov.velocity; //v2!(0.0, 0.0);
+            mov.velocity = v2!(0.0, 0.0);
+            mov.on_ground = true;
         }
         mov
+    }
+
+    pub fn jump(&mut self, vel: f32) {
+        if !self.on_ground {return}
+        self.velocity.y = vel;
+        self.on_ground = false;
     }
 }
 

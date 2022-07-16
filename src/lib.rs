@@ -4,6 +4,7 @@ pub mod types_and_constants;
 // pub mod collider;
 pub mod ecs;
 pub mod cactus;
+pub mod input;
 
 pub mod prelude{
     // pub use actor::*;
@@ -28,33 +29,10 @@ pub mod prelude{
     pub use crate::ecs::movable::Movable;
 
     pub use crate::cactus::*;
+    pub use crate::input::*;
 }
 
 use prelude::*;
-
-#[derive(Debug, Default)]
-pub struct InputState{
-    jump: bool,
-}
-
-impl InputState{
-    pub fn jump_start(&mut self){
-        self.jump = true;
-    }
-    pub fn jump_end(&mut self){
-        self.jump = false;
-    }
-    pub fn jump(&self) -> bool{
-        self.jump
-    }
-}
-
-// pub fn player_handle_input(actor: &mut Actor, input: &mut InputState, _dt: f32) {
-//     if input.jump() && !actor.in_air {
-//         actor.jump(JUMP_VELOCITY);
-//         input.jump_end();
-//     }
-// }
 
 
 

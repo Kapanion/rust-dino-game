@@ -1,3 +1,4 @@
+use ggez::GameError;
 use dino_game::prelude::*;
 
 struct MainState {
@@ -6,7 +7,7 @@ struct MainState {
     cactus_manager: CactusManager,
     screen_width: f32,
     screen_height: f32,
-    // input: InputState,
+    input: InputState,
 }
 
 impl MainState {
@@ -21,7 +22,8 @@ impl MainState {
             v2!(0.0, 0.0),
             v2!(0.0, -1000.0),
         );
-        let dino_collider = BoxCollider::new(v2!(30.0, 30.0));
+        let mut dino_collider = BoxCollider::new(v2!(30.0, 30.0));
+        dino_collider.ground_check_on();
 
         ecs.add_component_to_entity(dino, dino_movable);
         ecs.add_component_to_entity(dino, dino_collider);
@@ -40,6 +42,12 @@ impl MainState {
                     Vec2::ZERO,
                 )
             );
+            ecs.add_component_to_entity(
+                cactus,
+                BoxCollider::new(
+                    v2!(20.0, 20.0)
+                )
+            );
             ecs.add_component_to_entity(cactus, CircleGraphic::new(20.0));
 
             cactus_manager.add_cactus(cactus);
@@ -55,7 +63,7 @@ impl MainState {
             cactus_manager,
             screen_width: width,
             screen_height: height,
-            // input: InputState::default(),
+            input: InputState::default(),
         };
         Ok(s)
     }
@@ -69,10 +77,15 @@ impl event::EventHandler<ggez::GameError> for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let dt = 1.0 / (DESIRED_FPS as f32);
             let time = timer::time_since_start(ctx).as_secs_f32();
+            
+            player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
             Movable::update_pos(&mut self.ecs, self.dino, dt);
-            // println!("{:?}", self.ecs.get_component::<Movable>(self.dino).unwrap().pos);
             self.cactus_manager.update(&mut self.ecs, time, dt);
+
+            if self.cactus_manager.check_collision(&mut self.ecs, self.dino) {
+                return Err(GameError::WindowError("Game Over".to_owned()));
+            }
         }
         Ok(())
     }
@@ -98,29 +111,29 @@ impl event::EventHandler<ggez::GameError> for MainState {
         Ok(())
     }
 
-    // fn key_down_event(
-    //     &mut self,
-    //     ctx: &mut Context,
-    //     keycode: KeyCode,
-    //     _keymod: KeyMods,
-    //     _repeat: bool,
-    // ) {
-    //     match keycode{
-    //         KeyCode::Space | KeyCode::Up => {
-    //             self.input.jump_start();
-    //         }
-    //         _ => ()
-    //     }
-    // }
+    fn key_down_event(
+        &mut self,
+        ctx: &mut Context,
+        keycode: KeyCode,
+        _keymod: KeyMods,
+        _repeat: bool,
+    ) {
+        match keycode{
+            KeyCode::Space | KeyCode::Up => {
+                self.input.jump_start();
+            }
+            _ => ()
+        }
+    }
 
-    // fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
-    //     match keycode {
-    //         KeyCode::Space | KeyCode::Up => {
-    //             self.input.jump_end();
-    //         }
-    //         _ => (),
-    //     }
-    // }
+    fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
+        match keycode {
+            KeyCode::Space | KeyCode::Up => {
+                self.input.jump_end();
+            }
+            _ => (),
+        }
+    }
 }
 
 
