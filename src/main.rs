@@ -20,7 +20,7 @@ impl MainState {
         let dino_movable = Movable::new(
             v2!(-200.0, 200.0),
             v2!(0.0, 0.0),
-            v2!(0.0, -1000.0),
+            v2!(0.0, DINO_GRAVITY),
         );
         let mut dino_collider = BoxCollider::new(v2!(30.0, 30.0));
         dino_collider.ground_check_on();
@@ -31,7 +31,7 @@ impl MainState {
         
         // CACTI
         const POOL_SIZE: usize = 5;
-        let mut cactus_manager = CactusManager::with_capacity(POOL_SIZE, 2.0);
+        let mut cactus_manager = CactusManager::with_capacity(POOL_SIZE, 1.0);
         for _ in 0..POOL_SIZE {
             let cactus = ecs.new_entity();
             ecs.add_component_to_entity(
@@ -77,7 +77,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let dt = 1.0 / (DESIRED_FPS as f32);
             let time = timer::time_since_start(ctx).as_secs_f32();
-            
+
             player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
             Movable::update_pos(&mut self.ecs, self.dino, dt);
