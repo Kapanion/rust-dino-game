@@ -49,7 +49,7 @@ impl MainState {
 
         self.ecs.add_component(self.dino, dino_movable);
         self.ecs.add_component(self.dino, dino_collider);
-        self.ecs.add_component(self.dino, Sprite::new(ctx, "/dino_run_l.png").unwrap());
+        self.ecs.add_component(self.dino, Sprite::new(AssetTag::DinoRunL));
         // self.ecs.add_component(dino, CircleGraphic::new(47.0));
 
         for cactus in self.cactus_manager.ids() {
@@ -64,7 +64,7 @@ impl MainState {
             );
             self.ecs.add_component(cactus,BoxCollider::new(hs));
             // self.ecs.add_component(cactus, CircleGraphic::new(20.0));
-            self.ecs.add_component(cactus, Sprite::new(ctx, "/cactus_1.png").unwrap());
+            self.ecs.add_component(cactus, Sprite::new(AssetTag::Cactus1));
         }
     }
 }
@@ -99,7 +99,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
 
         for (sprite, movable) in iter_zip!(self.ecs, Sprite, Movable) {
-            sprite.draw(ctx, movable.pos, screen_size)?;
+            sprite.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
         }
 
         // for (circle_graphic, movable) in iter_zip!(self.ecs, CircleGraphic, Movable) {

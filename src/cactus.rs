@@ -63,23 +63,29 @@ impl CactusPool{
 
 pub struct CactusManager{
     pool: CactusPool,
+    cactus_tags: Vec<AssetTag>,
     delay: f32,
     next_spawn_time: f32,
+    rng: oorandom::Rand32,
 }
 
 impl CactusManager{
     pub fn new(delay: f32) -> CactusManager{
         CactusManager{
             pool: CactusPool::new(),
+            cactus_tags: vec![AssetTag::Cactus1, AssetTag::Cactus2, AssetTag::Cactus3, AssetTag::Cactus4],
             delay,
             next_spawn_time: 0.0,
+            rng: oorandom::Rand32::new(69420)
         }
     }
     pub fn with_capacity(capacity: usize, delay: f32) -> CactusManager{
         CactusManager{
             pool: CactusPool::with_capacity(capacity),
+            cactus_tags: vec![AssetTag::Cactus1, AssetTag::Cactus2, AssetTag::Cactus3, AssetTag::Cactus4],
             delay,
             next_spawn_time: 0.0,
+            rng: oorandom::Rand32::new(69420)
         }
     }
     pub fn add_cactus(&mut self, id: usize){
@@ -88,9 +94,15 @@ impl CactusManager{
     fn check_for_next_cactus(&mut self, ecs: &mut ECS, time: f32) {
         if self.next_spawn_time > time {return}
         let next_cactus = self.pool.activate_next().unwrap();
+
         let mut mov: Movable = ecs.get_component(next_cactus).unwrap();
         mov.pos.x = SCREEN.0 / 2.0 + 50.0;  //TODO more abstraction
         ecs.set_component::<Movable>(next_cactus, mov);
+
+        let mut spr: Sprite = ecs.get_component(next_cactus).unwrap();
+        spr.set_tag(self.cactus_tags[self.rng.rand_u32() as usize % self.cactus_tags.len()]); // Random sprite
+        ecs.set_component(next_cactus, spr);
+
         self.next_spawn_time = time + self.delay;
     }
     pub fn update(&mut self, ecs: &mut ECS, time: f32, dt: f32){
@@ -124,8 +136,4 @@ impl CactusManager{
         }
         res
     }
-}
-
-pub struct Cactus {
-    sprite: Sprite,
 }

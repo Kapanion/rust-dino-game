@@ -19,6 +19,8 @@ pub mod prelude{
     pub use ggez::{timer, conf};
     pub use ggez::{Context, GameResult};
 
+    pub use oorandom;
+
     pub use std::env;
     pub use std::path;
     pub use std::rc::Rc;
@@ -29,7 +31,7 @@ pub mod prelude{
         collision::BoxCollider,
         ezshape::CircleGraphic,
         movable::Movable,
-        sprite::Sprite,
+        sprite::*,
     };
 
     pub use crate::cactus::*;
