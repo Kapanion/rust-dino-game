@@ -87,7 +87,7 @@ impl ECS {
         None
     }
 
-    pub fn get_component<ComponentType: 'static + Copy + Clone>(
+    pub fn get_component<ComponentType: 'static +  Copy + Clone>(
         &self,
         entity_id: usize,
     ) -> Option<ComponentType> {

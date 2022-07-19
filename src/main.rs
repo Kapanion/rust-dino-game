@@ -9,6 +9,7 @@ struct MainState {
     screen_height: f32,
     input: InputState,
     assets: Assets,
+    cactus_tags: Vec<AssetTag>,
 }
 
 impl MainState {
@@ -18,9 +19,9 @@ impl MainState {
         let mut ecs = ECS::new();
         let dino = ecs.new_entity();
 
-        const POOL_SIZE: usize = 5;
-        let mut cactus_manager = CactusManager::with_capacity(POOL_SIZE, 1.0);
-        for _ in 0..POOL_SIZE {
+        let cactus_tags = AssetTag::cactus_tags();
+        let mut cactus_manager = CactusManager::with_capacity(cactus_tags.len(), 1.0);
+        for _ in 0..cactus_tags.len() {
             let cactus = ecs.new_entity();
             cactus_manager.add_cactus(cactus);
         }
@@ -35,6 +36,7 @@ impl MainState {
             screen_height: height,
             input: InputState::default(),
             assets,
+            cactus_tags,
         };
         Ok(s)
     }
@@ -52,8 +54,10 @@ impl MainState {
         self.ecs.add_component(self.dino, Sprite::new(AssetTag::DinoRunL));
         // self.ecs.add_component(dino, CircleGraphic::new(47.0));
 
-        for cactus in self.cactus_manager.ids() {
-            let hs = v2!(51.0, 35.0);
+        for i in 0..self.cactus_tags.len() {
+            let cactus = self.cactus_manager.id(i);
+            let img = self.assets.get_image(self.cactus_tags[i]);
+            let hs = v2!(img.width() as f32 / 2.0, img.height() as f32 / 2.0);
             self.ecs.add_component(
                 cactus,
                 Movable::new(
@@ -64,7 +68,7 @@ impl MainState {
             );
             self.ecs.add_component(cactus,BoxCollider::new(hs));
             // self.ecs.add_component(cactus, CircleGraphic::new(20.0));
-            self.ecs.add_component(cactus, Sprite::new(AssetTag::Cactus1));
+            self.ecs.add_component(cactus, Sprite::new(self.cactus_tags[i]));
         }
     }
 }

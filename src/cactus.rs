@@ -1,3 +1,5 @@
+use std::ops::Bound;
+use crate::collision::BoundType;
 use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -17,21 +19,21 @@ impl CactusEntry{
 
 struct CactusPool{
     cacti: Vec<CactusEntry>,
-    cur: usize,
+    rng: oorandom::Rand32,
 }
 
 impl CactusPool{
     fn new() -> CactusPool{
         CactusPool{
             cacti: Vec::new(),
-            cur: 0,
+            rng: oorandom::Rand32::new(RNG_SEED),
         }
     }
 
     fn with_capacity(capacity: usize) -> CactusPool{
         CactusPool{
             cacti: Vec::with_capacity(capacity),
-            cur: 0,
+            rng: oorandom::Rand32::new(RNG_SEED),
         }
     }
 
@@ -40,15 +42,15 @@ impl CactusPool{
     }
 
     fn activate_next(&mut self) -> Option<usize>{
-        if self.cacti[self.cur].active {
-            None
+        let next = (self.rng.rand_u32() as usize) % self.cacti.len();
+        for i in 0..self.cacti.len(){
+            let ind = (next + i) % self.cacti.len();
+            if !self.cacti[ind].active {
+                self.cacti[ind].active = true;
+                return Some(self.cacti[ind].id);
+            }
         }
-        else{
-            let res = self.cur;
-            self.cur = (self.cur + 1) % self.cacti.len();
-            self.cacti[res].active = true;
-            Some(self.cacti[res].id)
-        }
+        None
     }
 
     fn deactivate(&mut self, id: usize) {
@@ -63,7 +65,6 @@ impl CactusPool{
 
 pub struct CactusManager{
     pool: CactusPool,
-    cactus_tags: Vec<AssetTag>,
     delay: f32,
     next_spawn_time: f32,
     rng: oorandom::Rand32,
@@ -73,7 +74,6 @@ impl CactusManager{
     pub fn new(delay: f32) -> CactusManager{
         CactusManager{
             pool: CactusPool::new(),
-            cactus_tags: vec![AssetTag::Cactus1, AssetTag::Cactus2, AssetTag::Cactus3, AssetTag::Cactus4],
             delay,
             next_spawn_time: 0.0,
             rng: oorandom::Rand32::new(69420)
@@ -82,7 +82,6 @@ impl CactusManager{
     pub fn with_capacity(capacity: usize, delay: f32) -> CactusManager{
         CactusManager{
             pool: CactusPool::with_capacity(capacity),
-            cactus_tags: vec![AssetTag::Cactus1, AssetTag::Cactus2, AssetTag::Cactus3, AssetTag::Cactus4],
             delay,
             next_spawn_time: 0.0,
             rng: oorandom::Rand32::new(69420)
@@ -92,28 +91,33 @@ impl CactusManager{
         self.pool.add_cactus(id);
     }
     fn check_for_next_cactus(&mut self, ecs: &mut ECS, time: f32) {
-        if self.next_spawn_time > time {return}
+        if time < self.next_spawn_time {return}
         let next_cactus = self.pool.activate_next().unwrap();
 
         let mut mov: Movable = ecs.get_component(next_cactus).unwrap();
-        mov.pos.x = SCREEN.0 / 2.0 + 50.0;  //TODO more abstraction
+        mov.pos.x =
+            SCREEN.0 / 2.0 - ecs.get_component::<BoxCollider>(next_cactus)
+                .unwrap()
+                .get_bound_offset(BoundType::Left)
+                .x;
         ecs.set_component::<Movable>(next_cactus, mov);
 
-        let mut spr: Sprite = ecs.get_component(next_cactus).unwrap();
-        spr.set_tag(self.cactus_tags[self.rng.rand_u32() as usize % self.cactus_tags.len()]); // Random sprite
-        ecs.set_component(next_cactus, spr);
+        // let mut spr: Sprite = ecs.get_component(next_cactus).unwrap();
+        // spr.set_tag(self.cactus_tags[self.rng.rand_u32() as usize % self.cactus_tags.len()]); // Random sprite
+        // ecs.set_component(next_cactus, spr);
 
         self.next_spawn_time = time + self.delay;
     }
     pub fn update(&mut self, ecs: &mut ECS, time: f32, dt: f32){
         for i in 0..self.pool.cacti.len() {
             if self.pool.cacti[i].active{
-                let pos_x = ecs.get_component::<Movable>(self.pool.cacti[i].id).unwrap().pos.x;
-                if pos_x < - SCREEN.0 - 50.0 {
-                    self.pool.deactivate(self.pool.cacti[i].id);
+                let id = self.pool.cacti[i].id;
+                let col = ecs.get_component::<BoxCollider>(id).unwrap();
+                if col.get_bound(ecs, id, BoundType::Right).x < - SCREEN.0 / 2.0 {
+                    self.pool.deactivate(id);
                 }
                 else{
-                    Movable::update_pos(ecs, self.pool.cacti[i].id, dt);
+                    Movable::update_pos(ecs, id, dt);
                 }
             }
         }
@@ -135,5 +139,8 @@ impl CactusManager{
             res.push(entry.id);
         }
         res
+    }
+    pub fn id(&self, ind: usize) -> usize {
+        self.pool.cacti[ind].id
     }
 }

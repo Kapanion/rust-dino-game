@@ -72,7 +72,7 @@ pub fn draw_ground(
     color: Color,
     screen_size: Screen2,
 ) -> GameResult {
-    let line_center_y = GROUND_Y_COORD - width / 2.0;
+    let line_center_y = GROUND_Y_COORD; // - width / 2.0;
     let points: Vec<Vec2> = [(-1000.0, line_center_y), (1000.0, line_center_y)]
         .into_iter()
         .map(|pos| world_to_screen_coords(screen_size, Vec2::new(pos.0, pos.1)))
