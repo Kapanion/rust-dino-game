@@ -2,6 +2,7 @@ pub mod movable;
 pub mod ezshape;
 pub mod collision;
 pub mod sprite;
+pub mod animation;
 
 trait ComponentVec {
     fn as_any(&self) -> &dyn std::any::Any;

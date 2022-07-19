@@ -31,6 +31,6 @@ impl Draw for Sprite{
         let drawparams = graphics::DrawParam::new()
             .dest(pos)
             .offset(self.offset);
-        graphics::draw(ctx, assets.get_image(self.asset_tag), drawparams)
+        graphics::draw(ctx, assets.get_image(self.asset_tag).unwrap(), drawparams)
     }
 }

@@ -32,6 +32,7 @@ pub mod prelude{
         ezshape::CircleGraphic,
         movable::Movable,
         sprite::*,
+        animation::Animation,
     };
 
     pub use crate::cactus::*;

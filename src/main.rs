@@ -41,22 +41,25 @@ impl MainState {
         Ok(s)
     }
     fn start(&mut self, ctx: &mut Context) {
+        // DINO
         let dino_movable = Movable::new(
             v2!(-200.0, 200.0),
             v2!(0.0, 0.0),
             v2!(0.0, DINO_GRAVITY),
         );
-        let mut dino_collider = BoxCollider::new(v2!(20., 47.));
+        let mut dino_collider = BoxCollider::new(v2!(34., 47.));
         dino_collider.ground_check_on();
+        let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimation, 4);
 
         self.ecs.add_component(self.dino, dino_movable);
         self.ecs.add_component(self.dino, dino_collider);
-        self.ecs.add_component(self.dino, Sprite::new(AssetTag::DinoRunL));
+        self.ecs.add_component(self.dino, dino_anim);
         // self.ecs.add_component(dino, CircleGraphic::new(47.0));
 
+        // CACTUS
         for i in 0..self.cactus_tags.len() {
             let cactus = self.cactus_manager.id(i);
-            let img = self.assets.get_image(self.cactus_tags[i]);
+            let img = self.assets.get_image(self.cactus_tags[i]).unwrap();
             let hs = v2!(img.width() as f32 / 2.0, img.height() as f32 / 2.0);
             self.ecs.add_component(
                 cactus,
@@ -85,6 +88,11 @@ impl event::EventHandler<ggez::GameError> for MainState {
             player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
             Movable::update_pos(&mut self.ecs, self.dino, dt);
+
+            let mut anim = self.ecs.get_component::<Animation>(self.dino).unwrap();
+            anim.update(time);
+            self.ecs.set_component(self.dino, anim);
+
             self.cactus_manager.update(&mut self.ecs, time, dt);
 
             if self.cactus_manager.check_collision(&mut self.ecs, self.dino) {
@@ -101,6 +109,13 @@ impl event::EventHandler<ggez::GameError> for MainState {
         let screen_size = (self.screen_width, self.screen_height);
 
         draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
+
+        let mut i = 0;
+        for (anim, movable) in iter_zip!(self.ecs, Animation, Movable) {
+            anim.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
+            i += 1;
+        }
+        println!("{}", i);
 
         for (sprite, movable) in iter_zip!(self.ecs, Sprite, Movable) {
             sprite.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
