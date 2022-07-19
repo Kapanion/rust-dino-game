@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 pub trait Draw{
-    fn draw(&self, ctx: &mut Context, assets: &mut Assets, pos: Vec2, screen_size: Screen2) -> GameResult;
+    fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult;
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -26,7 +26,7 @@ impl Sprite{
 }
 
 impl Draw for Sprite{
-    fn draw(&self, ctx: &mut Context, assets: &mut Assets, pos: Vec2, screen_size: Screen2) -> GameResult{
+    fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult{
         let pos = world_to_screen_coords(screen_size, pos);
         let drawparams = graphics::DrawParam::new()
             .dest(pos)

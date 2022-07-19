@@ -1,80 +1,100 @@
 use crate::prelude::*;
 
+type Anim = Vec<Sprite>;
+
 pub struct Assets{
-    pub dino_run_l:     graphics::Image,
-    pub dino_run_r:     graphics::Image,
-    pub dino_dead:      graphics::Image,
-    pub cactus_small_1: graphics::Image,
-    pub cactus_small_2: graphics::Image,
-    pub cactus_small_3: graphics::Image,
-    pub cactus_big_1:   graphics::Image,
-    pub cactus_big_2:   graphics::Image,
-    pub cactus_big_3:   graphics::Image,
-    pub cloud:          graphics::Image,
-    pub ground1:        graphics::Image,
-    pub ground2:        graphics::Image,
-    pub dino_anim:      Vec<Sprite>,
+    pub dino_run_l:     Image,
+    pub dino_run_r:     Image,
+    pub dino_dead:      Image,
+    pub cactus_small_1: Image,
+    pub cactus_small_2: Image,
+    pub cactus_small_3: Image,
+    pub cactus_big_1:   Image,
+    pub cactus_big_2:   Image,
+    pub cactus_big_3:   Image,
+    pub cloud:          Image,
+    pub ground1:        Image,
+    pub ground2:        Image,
+    pub dino_anim_run:  Anim,
+    pub dino_anim_idle: Anim,
+    pub dino_anim_dead: Anim,
 }
 
 impl Assets{
     pub fn new(ctx: &mut Context) -> Assets {
-        let dino_run_l = graphics::Image::new(ctx, "/dino_run_l.png").unwrap();
-        let dino_run_r = graphics::Image::new(ctx, "/dino_run_r.png").unwrap();
-        let dino_anim = vec![
-                Sprite::new(AssetTag::DinoRunL),
-                Sprite::new(AssetTag::DinoRunR),
+        let dino_run_l = Image::new(ctx, "/dino_run_l.png").unwrap();
+        let dino_run_r = Image::new(ctx, "/dino_run_r.png").unwrap();
+        let dino_anim_run = vec![
+            Sprite::new(AssetTag::DinoRunL),
+            Sprite::new(AssetTag::DinoRunR),
+        ];
+        let dino_anim_idle = vec![
+            Sprite::new(AssetTag::DinoDead),
+        ];
+        let dino_anim_dead = vec![
+            Sprite::new(AssetTag::DinoDead),
         ];
         Assets{
             dino_run_l,
             dino_run_r,
-            dino_dead:      graphics::Image::new(ctx, "/dino_dead.png" ).unwrap(),
-            cactus_small_1: graphics::Image::new(ctx, "/cactus_small_1.png"  ).unwrap(),
-            cactus_small_2: graphics::Image::new(ctx, "/cactus_small_2.png"  ).unwrap(),
-            cactus_small_3: graphics::Image::new(ctx, "/cactus_small_3.png"  ).unwrap(),
-            cactus_big_1:   graphics::Image::new(ctx, "/cactus_big_1.png"  ).unwrap(),
-            cactus_big_2:   graphics::Image::new(ctx, "/cactus_big_2.png"  ).unwrap(),
-            cactus_big_3:   graphics::Image::new(ctx, "/cactus_big_3.png"  ).unwrap(),
-            cloud:          graphics::Image::new(ctx, "/cloud.png"     ).unwrap(),
-            ground1:        graphics::Image::new(ctx, "/ground_1.png"  ).unwrap(),
-            ground2:        graphics::Image::new(ctx, "/ground_2.png"  ).unwrap(),
-            dino_anim,
+            dino_dead:      Image::new(ctx, "/dino_dead.png" ).unwrap(),
+            cactus_small_1: Image::new(ctx, "/cactus_small_1.png"  ).unwrap(),
+            cactus_small_2: Image::new(ctx, "/cactus_small_2.png"  ).unwrap(),
+            cactus_small_3: Image::new(ctx, "/cactus_small_3.png"  ).unwrap(),
+            cactus_big_1:   Image::new(ctx, "/cactus_big_1.png"  ).unwrap(),
+            cactus_big_2:   Image::new(ctx, "/cactus_big_2.png"  ).unwrap(),
+            cactus_big_3:   Image::new(ctx, "/cactus_big_3.png"  ).unwrap(),
+            cloud:          Image::new(ctx, "/cloud.png"     ).unwrap(),
+            ground1:        Image::new(ctx, "/ground_1.png"  ).unwrap(),
+            ground2:        Image::new(ctx, "/ground_2.png"  ).unwrap(),
+            dino_anim_run,
+            dino_anim_idle,
+            dino_anim_dead,
         }
     }
-    pub fn get_image(&mut self, tag: AssetTag) -> Option<&mut graphics::Image> {
+    pub fn get_image(&self, tag: AssetTag) -> Option<&Image> {
         match tag{
-            AssetTag::DinoRunL      => Some(&mut self.dino_run_l),
-            AssetTag::DinoRunR      => Some(&mut self.dino_run_r),
-            AssetTag::DinoDead      => Some(&mut self.dino_dead),
-            AssetTag::Ground1       => Some(&mut self.ground1),
-            AssetTag::Ground2       => Some(&mut self.ground2),
-            AssetTag::Cloud         => Some(&mut self.cloud),
-            AssetTag::CactusSmall1  => Some(&mut self.cactus_small_1),
-            AssetTag::CactusSmall2  => Some(&mut self.cactus_small_2),
-            AssetTag::CactusSmall3  => Some(&mut self.cactus_small_3),
-            AssetTag::CactusBig1    => Some(&mut self.cactus_big_1),
-            AssetTag::CactusBig2    => Some(&mut self.cactus_big_2),
-            AssetTag::CactusBig3    => Some(&mut self.cactus_big_3),
+            AssetTag::DinoRunL      => Some(&self.dino_run_l),
+            AssetTag::DinoRunR      => Some(&self.dino_run_r),
+            AssetTag::DinoDead      => Some(&self.dino_dead),
+            AssetTag::Ground1       => Some(&self.ground1),
+            AssetTag::Ground2       => Some(&self.ground2),
+            AssetTag::Cloud         => Some(&self.cloud),
+            AssetTag::CactusSmall1  => Some(&self.cactus_small_1),
+            AssetTag::CactusSmall2  => Some(&self.cactus_small_2),
+            AssetTag::CactusSmall3  => Some(&self.cactus_small_3),
+            AssetTag::CactusBig1    => Some(&self.cactus_big_1),
+            AssetTag::CactusBig2    => Some(&self.cactus_big_2),
+            AssetTag::CactusBig3    => Some(&self.cactus_big_3),
             _ => None
         }
     }
-    pub fn get_anim_frame(&mut self, tag: AssetTag, frame: usize) -> Option<Sprite> {
+    pub fn get_anim(&self, tag: AssetTag) -> Option<&Anim> {
         match tag {
-            AssetTag::DinoAnimation => Some(self.dino_anim[frame]),
+            AssetTag::DinoAnimRun   => Some(&self.dino_anim_run),
+            AssetTag::DinoAnimJump  => Some(&self.dino_anim_idle),
+            AssetTag::DinoAnimDead  => Some(&self.dino_anim_dead),
             _ => None
         }
+    }
+    pub fn get_anim_frame(&self, tag: AssetTag, frame: usize) -> Option<Sprite> {
+        if let Some(anim) = self.get_anim(tag) {
+            return Some(anim[frame]);
+        }
+        None
     }
     pub fn get_anim_length(&self, tag: AssetTag) -> Option<usize> {
-        match tag {
-            AssetTag::DinoAnimation => Some(self.dino_anim.len()),
-            _ => None
+        if let Some(anim) = self.get_anim(tag) {
+            return Some(anim.len());
         }
+        None
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AssetTag{
     DinoRunL, DinoRunR, DinoDead,
-    DinoAnimation,
+    DinoAnimRun, DinoAnimJump, DinoAnimDead,
     CactusSmall1, CactusSmall2, CactusSmall3,
     CactusBig1, CactusBig2, CactusBig3,
     Ground1, Ground2,

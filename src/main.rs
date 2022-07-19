@@ -49,7 +49,7 @@ impl MainState {
         );
         let mut dino_collider = BoxCollider::new(v2!(34., 47.));
         dino_collider.ground_check_on();
-        let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimation, 4);
+        let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun, 4);
 
         self.ecs.add_component(self.dino, dino_movable);
         self.ecs.add_component(self.dino, dino_collider);
@@ -110,12 +110,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
 
-        let mut i = 0;
         for (anim, movable) in iter_zip!(self.ecs, Animation, Movable) {
             anim.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
-            i += 1;
         }
-        println!("{}", i);
 
         for (sprite, movable) in iter_zip!(self.ecs, Sprite, Movable) {
             sprite.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
@@ -157,12 +154,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
 
 pub fn main() -> GameResult {
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
+    let resource_dir = if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+        let mut path = std::path::PathBuf::from(manifest_dir);
         path.push("resources");
         path
     } else {
-        path::PathBuf::from("./resources")
+        std::path::PathBuf::from("./resources")
     };
 
     let (w,h) = SCREEN;

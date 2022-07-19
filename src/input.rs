@@ -21,7 +21,10 @@ pub fn player_handle_input(ecs: &mut ECS, entity_id: usize, input: &mut InputSta
     if input.jump() {
         let mut mov: Movable = ecs.get_component(entity_id).unwrap();
         mov.jump(JUMP_VELOCITY);
-        input.jump_end();
         ecs.set_component(entity_id, mov);
+
+
+
+        input.jump_end();
     }
 }

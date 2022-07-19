@@ -31,7 +31,7 @@ impl Animation {
 }
 
 impl Draw for Animation{
-    fn draw(&self, ctx: &mut Context, assets: &mut Assets, pos: Vec2, screen_size: Screen2) -> GameResult {
+    fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult {
         assets.get_anim_frame(self.asset_tag, self.current_frame).unwrap().draw(ctx, assets, pos, screen_size)
     }
 }
