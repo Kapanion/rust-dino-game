@@ -1,10 +1,11 @@
 pub mod util;
 pub mod types_and_constants;
-pub mod ecs;
+pub mod components;
 pub mod dino;
 pub mod cactus;
 pub mod input;
 pub mod assets;
+pub mod ecs;
 
 pub mod prelude{
     pub use types_and_constants::*;
@@ -20,13 +21,7 @@ pub mod prelude{
 
     pub use crate::*;
     pub use crate::ecs::*;
-    pub use crate::ecs::{
-        collision::BoxCollider,
-        ezshape::CircleGraphic,
-        movable::Movable,
-        sprite::*,
-        animation::Animation,
-    };
+    pub use crate::components::*;
 
     pub use crate::cactus::*;
     pub use crate::dino::*;
@@ -35,8 +30,32 @@ pub mod prelude{
 }
 
 use prelude::*;
+use std::any::*;
 
+pub trait Draw{
+    fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult;
+}
 
+pub trait Update{
+    fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32);
+}
+
+// pub struct Updater<T: Update> {
+//     // type_id: TypeId,
+//     entity_id: usize,
+// }
+//
+// impl<T: Update> Updater<T> {
+//     pub fn new(entity_id: usize) -> Updater<T>{
+//         Updater{
+//             entity_id
+//         }
+//     }
+//     pub fn update(&self, ecs: &mut ECS, assets: &Assets, time: f32, dt: f32){
+//         // T::update();
+//         let c = 5;
+//     }
+// }
 
 /// Helper functions
 

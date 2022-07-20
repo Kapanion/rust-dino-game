@@ -21,8 +21,11 @@ impl DinoController {
         mov.jump(JUMP_VELOCITY);
         ecs.set_component(self.entity_id, mov);
     }
-    pub fn update(&mut self, ecs: &mut ECS) {
-        let mov: Movable = ecs.get_component(self.entity_id).unwrap();
-        ecs.set_component::<DinoState>(self.entity_id, if mov.on_ground {DinoState::Run} else {DinoState::Jump});
+}
+
+impl Update for DinoController{
+    fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32) {
+        let mov: Movable = ecs.get_component(entity_id).unwrap();
+        ecs.set_component::<DinoState>(entity_id, if mov.on_ground {DinoState::Run} else {DinoState::Jump});
     }
 }

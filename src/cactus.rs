@@ -102,9 +102,9 @@ impl CactusManager{
                 .x;
         ecs.set_component::<Movable>(next_cactus, mov);
 
-        // let mut spr: Sprite = ecs.get_component(next_cactus).unwrap();
+        // let mut spr: Sprite = components.get_component(next_cactus).unwrap();
         // spr.set_tag(self.cactus_tags[self.rng.rand_u32() as usize % self.cactus_tags.len()]); // Random sprite
-        // ecs.set_component(next_cactus, spr);
+        // components.set_component(next_cactus, spr);
 
         self.next_spawn_time = time + self.delay;
     }

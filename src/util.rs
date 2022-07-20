@@ -1,6 +1,6 @@
 use crate::types_and_constants::*;
 use glam::*;
-use crate::ecs::collision::BoundType;
+use crate::components::collision::BoundType;
 
 #[macro_export]
 macro_rules! v2 {
@@ -13,10 +13,10 @@ macro_rules! v2 {
 
 #[macro_export]
 macro_rules! iter_zip {
-    ( $world:expr, $t1:ty, $t2:ty) => {
+    ( $ecs:expr, $t1:ty, $t2:ty) => {
         {
-            ($world).borrow_component_vec::<$t1>().unwrap().iter()
-                .zip(($world).borrow_component_vec::<$t2>().unwrap().iter())
+            ($ecs).borrow_component_vec::<$t1>().unwrap().iter()
+                .zip(($ecs).borrow_component_vec::<$t2>().unwrap().iter())
                 .filter_map(|(x1, x2)| Some((x1.as_ref()?, x2.as_ref()?)))
         }
     }
@@ -24,11 +24,23 @@ macro_rules! iter_zip {
 
 #[macro_export]
 macro_rules! iter_zip_mut {
-    ( $world:expr, $t1:ty, $t2:ty) => {
+    ( $ecs:expr, $t1:ty, $t2:ty) => {
         {
-            ($world).borrow_component_vec_mut::<$t1>().unwrap().iter_mut()
-                .zip(($world).borrow_component_vec_mut::<$t2>().unwrap().iter_mut())
+            ($ecs).borrow_component_vec_mut::<$t1>().unwrap().iter_mut()
+                .zip(($ecs).borrow_component_vec_mut::<$t2>().unwrap().iter_mut())
                 .filter_map(|(x1, x2)| Some((x1.as_mut()?, x2.as_mut()?)))
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! update {
+    { ($ecs: expr, $assets: expr, $time: expr, $dt: expr);
+    $($t: ty: $($id: expr),*);*$(;)? } => {
+        {
+            $(
+                $(<$t>::update($ecs, $assets, $id, $time, $dt);)*
+            )*
         }
     }
 }

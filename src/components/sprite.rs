@@ -1,9 +1,5 @@
 use crate::prelude::*;
 
-pub trait Draw{
-    fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult;
-}
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Sprite{
     asset_tag: AssetTag,

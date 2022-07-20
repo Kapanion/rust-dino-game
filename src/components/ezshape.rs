@@ -1,12 +1,6 @@
 // For testing
 // Drawing circles
-
-use ggez::graphics::{self, Color};
-use ggez::{Context, GameResult};
-use glam::*;
-
-use crate::util::*;
-use super::*;
+use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CircleGraphic {
@@ -17,12 +11,14 @@ impl CircleGraphic {
     pub fn new(radius: f32) -> CircleGraphic {
         CircleGraphic { radius }
     }
-
-    pub fn draw(
+}
+impl Draw for CircleGraphic{
+    fn draw(
         &self,
         ctx: &mut Context,
+        assets: &Assets,
         pos: Vec2,
-        screen_size: (f32, f32),
+        screen_size: Screen2,
     ) -> GameResult
     {
         let circle = graphics::Mesh::new_circle(

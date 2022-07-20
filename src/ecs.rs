@@ -1,8 +1,4 @@
-pub mod movable;
-pub mod ezshape;
-pub mod collision;
-pub mod sprite;
-pub mod animation;
+use crate::prelude::*;
 
 trait ComponentVec {
     fn as_any(&self) -> &dyn std::any::Any;

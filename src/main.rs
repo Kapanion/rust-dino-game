@@ -1,5 +1,5 @@
 use ggez::GameError;
-use dino_game::ecs::animation::AnimStateMachine;
+use dino_game::components::animation::AnimStateMachine;
 use dino_game::prelude::*;
 
 struct MainState {
@@ -59,7 +59,7 @@ impl MainState {
         self.ecs.add_component(self.dino, DinoController::new(self.dino));
         self.ecs.add_component(self.dino, DinoState::Run);
         self.ecs.add_component(self.dino, dino_state_machine);
-        // self.ecs.add_component(dino, CircleGraphic::new(47.0));
+        // self.components.add_component(dino, CircleGraphic::new(47.0));
 
         // CACTUS
         for i in 0..self.cactus_tags.len() {
@@ -75,7 +75,7 @@ impl MainState {
                 )
             );
             self.ecs.add_component(cactus,BoxCollider::new(hs));
-            // self.ecs.add_component(cactus, CircleGraphic::new(20.0));
+            // self.components.add_component(cactus, CircleGraphic::new(20.0));
             self.ecs.add_component(cactus, Sprite::new(self.cactus_tags[i]));
         }
     }
@@ -92,16 +92,13 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
-            Movable::update_pos(&mut self.ecs, self.dino, dt);
-            self.ecs.get_component::<DinoController>(self.dino).unwrap().update(&mut self.ecs);
-
-            let mut anim = self.ecs.get_component::<AnimStateMachine<DinoState>>(self.dino).unwrap();
-            anim.update(&mut self.ecs, &self.assets, self.dino);
-            self.ecs.set_component(self.dino, anim);
-
-            let mut anim = self.ecs.get_component::<Animation>(self.dino).unwrap();
-            anim.update(time);
-            self.ecs.set_component(self.dino, anim);
+            update! {
+                (&mut self.ecs, &self.assets, time, dt);
+                Movable:                            self.dino;
+                DinoController:                     self.dino;
+                AnimStateMachine::<DinoState>:      self.dino;
+                Animation:                          self.dino;
+            };
 
             self.cactus_manager.update(&mut self.ecs, time, dt);
 
@@ -128,7 +125,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             sprite.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
         }
 
-        // for (circle_graphic, movable) in iter_zip!(self.ecs, CircleGraphic, Movable) {
+        // for (circle_graphic, movable) in iter_zip!(self.components, CircleGraphic, Movable) {
         //     circle_graphic.draw(ctx, movable.pos, screen_size)?;
         // }
 

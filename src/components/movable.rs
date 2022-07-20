@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use super::collision::{BoxCollider, BoundType};
+use super::collision::BoundType;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Movable{
@@ -51,6 +51,11 @@ impl Movable{
     }
 }
 
+impl Update for Movable{
+    fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32) {
+        Movable::update_pos(ecs, entity_id, dt);
+    }
+}
 
 
 // pub fn out_of_screen(&self) -> bool{
