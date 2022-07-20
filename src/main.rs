@@ -93,6 +93,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
             Movable::update_pos(&mut self.ecs, self.dino, dt);
+            self.ecs.get_component::<DinoController>(self.dino).unwrap().update(&mut self.ecs);
 
             let mut anim = self.ecs.get_component::<AnimStateMachine<DinoState>>(self.dino).unwrap();
             anim.update(&mut self.ecs, &self.assets, self.dino);

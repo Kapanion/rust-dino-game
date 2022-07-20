@@ -29,7 +29,7 @@ impl Assets{
         let dino_anim_run = (vec![
             Sprite::new(AssetTag::DinoRunL),
             Sprite::new(AssetTag::DinoRunR),
-        ], 4);
+        ], 8);
         let dino_anim_idle = (vec![
             Sprite::new(AssetTag::DinoDead),
         ], 1);
