@@ -1,4 +1,5 @@
 use ggez::GameError;
+use dino_game::ecs::animation::AnimStateMachine;
 use dino_game::prelude::*;
 
 struct MainState {
@@ -8,7 +9,7 @@ struct MainState {
     screen_width: f32,
     screen_height: f32,
     input: InputState,
-    assets: Assets,
+    assets: Box<Assets>,
     cactus_tags: Vec<AssetTag>,
 }
 
@@ -50,10 +51,14 @@ impl MainState {
         let mut dino_collider = BoxCollider::new(v2!(34., 47.));
         dino_collider.ground_check_on();
         let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun, 4);
+        let dino_state_machine = AnimStateMachine::new(&mut self.assets, AssetTag::DinoStateMachine, DinoState::Run);
 
         self.ecs.add_component(self.dino, dino_movable);
         self.ecs.add_component(self.dino, dino_collider);
         self.ecs.add_component(self.dino, dino_anim);
+        self.ecs.add_component(self.dino, DinoController::new(self.dino));
+        self.ecs.add_component(self.dino, DinoState::Run);
+        self.ecs.add_component(self.dino, dino_state_machine);
         // self.ecs.add_component(dino, CircleGraphic::new(47.0));
 
         // CACTUS
@@ -88,6 +93,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
             Movable::update_pos(&mut self.ecs, self.dino, dt);
+
+            let mut anim = self.ecs.get_component::<AnimStateMachine<DinoState>>(self.dino).unwrap();
+            anim.update(&mut self.ecs, &self.assets, self.dino);
+            self.ecs.set_component(self.dino, anim);
 
             let mut anim = self.ecs.get_component::<Animation>(self.dino).unwrap();
             anim.update(time);

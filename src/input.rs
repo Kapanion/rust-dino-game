@@ -19,12 +19,7 @@ impl InputState{
 
 pub fn player_handle_input(ecs: &mut ECS, entity_id: usize, input: &mut InputState, _dt: f32) {
     if input.jump() {
-        let mut mov: Movable = ecs.get_component(entity_id).unwrap();
-        mov.jump(JUMP_VELOCITY);
-        ecs.set_component(entity_id, mov);
-
-
-
+        ecs.get_component::<DinoController>(entity_id).unwrap().jump(ecs);
         input.jump_end();
     }
 }

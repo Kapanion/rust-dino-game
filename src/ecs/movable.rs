@@ -7,7 +7,7 @@ pub struct Movable{
     pub pos: Vec2,
     pub velocity: Vec2,
     pub gravity: Vec2,
-    on_ground: bool,
+    pub on_ground: bool,
 }
 
 impl Movable{
