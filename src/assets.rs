@@ -8,6 +8,7 @@ pub struct Assets{
     pub dino_run_l:     Image,
     pub dino_run_r:     Image,
     pub dino_dead:      Image,
+    pub dino_idle:      Image,
     pub cactus_small_1: Image,
     pub cactus_small_2: Image,
     pub cactus_small_3: Image,
@@ -31,7 +32,7 @@ impl Assets{
             Sprite::new(AssetTag::DinoRunR),
         ], 8);
         let dino_anim_idle = (vec![
-            Sprite::new(AssetTag::DinoDead),
+            Sprite::new(AssetTag::DinoIdle),
         ], 1);
         let dino_anim_dead = (vec![
             Sprite::new(AssetTag::DinoDead),
@@ -41,6 +42,7 @@ impl Assets{
                 dino_run_l,
                 dino_run_r,
                 dino_dead:      Image::new(ctx, "/dino_dead.png" ).unwrap(),
+                dino_idle:      Image::new(ctx, "/dino_idle.png" ).unwrap(),
                 cactus_small_1: Image::new(ctx, "/cactus_small_1.png"  ).unwrap(),
                 cactus_small_2: Image::new(ctx, "/cactus_small_2.png"  ).unwrap(),
                 cactus_small_3: Image::new(ctx, "/cactus_small_3.png"  ).unwrap(),
@@ -61,6 +63,7 @@ impl Assets{
             AssetTag::DinoRunL      => Some(&self.dino_run_l),
             AssetTag::DinoRunR      => Some(&self.dino_run_r),
             AssetTag::DinoDead      => Some(&self.dino_dead),
+            AssetTag::DinoIdle      => Some(&self.dino_idle),
             AssetTag::Ground1       => Some(&self.ground1),
             AssetTag::Ground2       => Some(&self.ground2),
             AssetTag::Cloud         => Some(&self.cloud),
@@ -124,7 +127,7 @@ impl Assets{
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AssetTag{
-    DinoRunL, DinoRunR, DinoDead,
+    DinoRunL, DinoRunR, DinoDead, DinoIdle,
     DinoAnimRun, DinoAnimJump, DinoAnimDead,
     DinoStateMachine,
     CactusSmall1, CactusSmall2, CactusSmall3,
