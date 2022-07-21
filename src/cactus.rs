@@ -53,7 +53,6 @@ impl CactusPool{
     }
 
     fn deactivate(&mut self, id: usize) {
-        //TODO optimization
         for i in 0..self.cacti.len(){
             if self.cacti[i].id == id{
                 self.cacti[i].active = false;

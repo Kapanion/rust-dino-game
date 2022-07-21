@@ -1,7 +1,6 @@
 pub mod macros;
 pub mod types_and_constants;
 pub mod components;
-pub mod dino;
 pub mod cactus;
 pub mod input;
 pub mod assets;
@@ -11,10 +10,10 @@ pub mod prelude{
     pub use glam::*;
 
     pub use ggez::{
-        event::{self, KeyMods, KeyCode},
-        graphics::{self, Color, Image},
-        timer, conf,
-        Context, GameResult,
+        conf,
+        Context,
+        event::{self, KeyCode, KeyMods}, GameResult,
+        graphics::{self, Color, Image}, timer,
     };
 
     pub use oorandom;
@@ -22,12 +21,11 @@ pub mod prelude{
     pub use crate::{
         *,
         assets::*,
-        input::*,
-        ecs::*,
-        types_and_constants::*,
-        components::*,
         cactus::*,
-        dino::*,
+        components::*,
+        ecs::*,
+        input::*,
+        types_and_constants::*,
     };
 }
 
