@@ -16,7 +16,7 @@ impl Draw for CircleGraphic{
     fn draw(
         &self,
         ctx: &mut Context,
-        assets: &Assets,
+        _assets: &Assets,
         pos: Vec2,
         screen_size: Screen2,
     ) -> GameResult

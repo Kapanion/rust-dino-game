@@ -1,6 +1,5 @@
 use crate::prelude::*;
-
-use super::collision::BoundType;
+use collision::BoundType;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Movable{
@@ -52,7 +51,7 @@ impl Movable{
 }
 
 impl Update for Movable{
-    fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32) {
+    fn update(ecs: &mut ECS, _assets: &Assets, entity_id: usize, _time: f32, dt: f32) {
         Movable::update_pos(ecs, entity_id, dt);
     }
 }

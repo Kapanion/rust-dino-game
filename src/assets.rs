@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-use std::any::TypeId;
-
 type Anim = (Vec<Sprite>, u8);      // (frames, fps)
 
 pub struct Assets{
@@ -112,9 +110,6 @@ impl Assets{
     pub fn get_state_machine_anim<State: 'static>(&self, tag: AssetTag, state: State) -> Option<AssetTag> {
         match tag{
             AssetTag::DinoStateMachine => {
-                // if TypeId::of::<State>() == TypeId::of::<DinoState>(){
-                //     Some(self.dino_state_machine(state))
-                // }
                 if let Some(state) = (&state as &dyn std::any::Any).downcast_ref::<DinoState>(){
                     Some(self.dino_state_machine(*state))
                 }

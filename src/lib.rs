@@ -1,4 +1,4 @@
-pub mod util;
+pub mod macros;
 pub mod types_and_constants;
 pub mod components;
 pub mod dino;
@@ -8,29 +8,30 @@ pub mod assets;
 pub mod ecs;
 
 pub mod prelude{
-    pub use types_and_constants::*;
-    pub use util::*;
     pub use glam::*;
 
-    pub use ggez::event::{self, KeyMods, KeyCode};
-    pub use ggez::graphics::{self, Color, Image};
-    pub use ggez::{timer, conf};
-    pub use ggez::{Context, GameResult};
+    pub use ggez::{
+        event::{self, KeyMods, KeyCode},
+        graphics::{self, Color, Image},
+        timer, conf,
+        Context, GameResult,
+    };
 
     pub use oorandom;
 
-    pub use crate::*;
-    pub use crate::ecs::*;
-    pub use crate::components::*;
-
-    pub use crate::cactus::*;
-    pub use crate::dino::*;
-    pub use crate::input::*;
-    pub use crate::assets::*;
+    pub use crate::{
+        *,
+        assets::*,
+        input::*,
+        ecs::*,
+        types_and_constants::*,
+        components::*,
+        cactus::*,
+        dino::*,
+    };
 }
 
 use prelude::*;
-use std::any::*;
 
 pub trait Draw{
     fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult;
@@ -39,23 +40,6 @@ pub trait Draw{
 pub trait Update{
     fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32);
 }
-
-// pub struct Updater<T: Update> {
-//     // type_id: TypeId,
-//     entity_id: usize,
-// }
-//
-// impl<T: Update> Updater<T> {
-//     pub fn new(entity_id: usize) -> Updater<T>{
-//         Updater{
-//             entity_id
-//         }
-//     }
-//     pub fn update(&self, ecs: &mut ECS, assets: &Assets, time: f32, dt: f32){
-//         // T::update();
-//         let c = 5;
-//     }
-// }
 
 /// Helper functions
 
@@ -74,3 +58,16 @@ pub fn draw_ground(
     let drawparams = graphics::DrawParam::new();
     graphics::draw(ctx, &line, drawparams)
 }
+
+/// World and screen positions
+
+pub fn world_to_screen_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
+    let x = point.x + screen_size.0 / 2.0;
+    let y = screen_size.1 - (point.y + screen_size.1 / 2.0);
+    v2!(x, y)
+}
+
+// fn screen_bound(screen_size: Screen2, bound: BoundType) -> Vec2{
+//     let screen_size_h = (screen_size.0 / 2.0, screen_size.1 / 2.0);
+//     BoxCollider::box_bound_offs(Vec2::from(screen_size_h), bound)
+// }

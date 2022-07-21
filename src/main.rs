@@ -1,5 +1,3 @@
-use ggez::GameError;
-use dino_game::components::animation::AnimStateMachine;
 use dino_game::prelude::*;
 
 struct MainState {
@@ -10,7 +8,6 @@ struct MainState {
     screen_height: f32,
     input: InputState,
     assets: Box<Assets>,
-    cactus_tags: Vec<AssetTag>,
 }
 
 impl MainState {
@@ -37,11 +34,10 @@ impl MainState {
             screen_height: height,
             input: InputState::default(),
             assets,
-            cactus_tags,
         };
         Ok(s)
     }
-    fn start(&mut self, ctx: &mut Context) {
+    fn start(&mut self, _ctx: &mut Context) {
         // DINO
         let dino_movable = Movable::new(
             v2!(-200.0, 200.0),
@@ -62,9 +58,10 @@ impl MainState {
         // self.components.add_component(dino, CircleGraphic::new(47.0));
 
         // CACTUS
-        for i in 0..self.cactus_tags.len() {
+        let cactus_tags = AssetTag::cactus_tags();
+        for i in 0..cactus_tags.len() {
             let cactus = self.cactus_manager.id(i);
-            let img = self.assets.get_image(self.cactus_tags[i]).unwrap();
+            let img = self.assets.get_image(cactus_tags[i]).unwrap();
             let hs = v2!(img.width() as f32 / 2.0, img.height() as f32 / 2.0);
             self.ecs.add_component(
                 cactus,
@@ -75,8 +72,8 @@ impl MainState {
                 )
             );
             self.ecs.add_component(cactus,BoxCollider::new(hs));
+            self.ecs.add_component(cactus, Sprite::new(cactus_tags[i]));
             // self.components.add_component(cactus, CircleGraphic::new(20.0));
-            self.ecs.add_component(cactus, Sprite::new(self.cactus_tags[i]));
         }
     }
 }
@@ -93,7 +90,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
             update! {
-                (&mut self.ecs, &self.assets, time, dt);
+                [&mut self.ecs, &self.assets, time, dt]
                 Movable:                            self.dino;
                 DinoController:                     self.dino;
                 AnimStateMachine::<DinoState>:      self.dino;
@@ -136,7 +133,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
     fn key_down_event(
         &mut self,
-        ctx: &mut Context,
+        _ctx: &mut Context,
         keycode: KeyCode,
         _keymod: KeyMods,
         _repeat: bool,

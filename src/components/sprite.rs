@@ -24,9 +24,9 @@ impl Sprite{
 impl Draw for Sprite{
     fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult{
         let pos = world_to_screen_coords(screen_size, pos);
-        let drawparams = graphics::DrawParam::new()
+        let draw_params = graphics::DrawParam::new()
             .dest(pos)
             .offset(self.offset);
-        graphics::draw(ctx, assets.get_image(self.asset_tag).unwrap(), drawparams)
+        graphics::draw(ctx, assets.get_image(self.asset_tag).unwrap(), draw_params)
     }
 }

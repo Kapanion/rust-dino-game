@@ -1,6 +1,5 @@
-use std::ops::Bound;
-use crate::collision::BoundType;
 use crate::prelude::*;
+use collision::BoundType;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct CactusEntry{
@@ -101,10 +100,6 @@ impl CactusManager{
                 .get_bound_offset(BoundType::Left)
                 .x;
         ecs.set_component::<Movable>(next_cactus, mov);
-
-        // let mut spr: Sprite = components.get_component(next_cactus).unwrap();
-        // spr.set_tag(self.cactus_tags[self.rng.rand_u32() as usize % self.cactus_tags.len()]); // Random sprite
-        // components.set_component(next_cactus, spr);
 
         self.next_spawn_time = time + self.delay;
     }
