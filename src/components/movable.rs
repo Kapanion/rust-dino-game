@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use collision::BoundType;
+use crate::KeyCode::End;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Movable{
@@ -56,6 +57,29 @@ impl Update for Movable{
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EndlessScroll{
+    width: f32,
+}
+
+impl EndlessScroll{
+    pub fn new(width: f32) -> EndlessScroll{
+        EndlessScroll{
+            width,
+        }
+    }
+}
+
+impl Update for EndlessScroll{
+    fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32) {
+        let mut mov = ecs.get_component::<Movable>(entity_id).unwrap();
+        let scroll = ecs.get_component::<EndlessScroll>(entity_id).unwrap();
+        if mov.pos.x + scroll.width / 2.0 < -SCREEN.0 / 2.0 {
+            mov.pos.x += scroll.width * 2.;
+            ecs.set_component(entity_id, mov);
+        }
+    }
+}
 
 // pub fn out_of_screen(&self) -> bool{
 //     let screen = BoxCollider::new(Vec2::ZERO, v2!(SCREEN.0 / 2.0, SCREEN.1 / 2.0));

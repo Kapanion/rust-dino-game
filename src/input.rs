@@ -3,6 +3,7 @@ use crate::prelude::*;
 #[derive(Debug, Default)]
 pub struct InputState{
     jump: bool,
+    pause: bool,
 }
 
 impl InputState{
@@ -14,6 +15,12 @@ impl InputState{
     }
     pub fn jump(&self) -> bool{
         self.jump
+    }
+    pub fn toggle_pause(&mut self){
+        self.pause = !self.pause;
+    }
+    pub fn pause(&self) -> bool{
+        self.pause
     }
 }
 

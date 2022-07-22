@@ -32,7 +32,7 @@ pub mod prelude{
 use prelude::*;
 
 pub trait Draw{
-    fn draw(&self, ctx: &mut Context, assets: &Assets, pos: Vec2, screen_size: Screen2) -> GameResult;
+    fn draw(&self, ctx: &mut Context, ecs: &ECS, assets: &Assets, entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult;
 }
 
 pub trait Update{

@@ -5,7 +5,7 @@ pub mod sprite;
 pub mod animation;
 pub mod dino;
 
-pub use movable::Movable;
+pub use movable::{Movable, EndlessScroll};
 pub use ezshape::CircleGraphic;
 pub use collision::BoxCollider;
 pub use sprite::Sprite;

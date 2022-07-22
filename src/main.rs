@@ -3,6 +3,8 @@ use dino_game::prelude::*;
 struct MainState {
     ecs: ECS,
     dino: usize,
+    ground1: usize,
+    ground2: usize,
     cactus_manager: CactusManager,
     screen_width: f32,
     screen_height: f32,
@@ -15,7 +17,9 @@ impl MainState {
         let assets = Assets::new(ctx);
 
         let mut ecs = ECS::new();
-        let dino = ecs.new_entity();
+
+        let ground1 = ecs.new_entity();
+        let ground2 = ecs.new_entity();
 
         let cactus_tags = AssetTag::cactus_tags();
         let mut cactus_manager = CactusManager::with_capacity(cactus_tags.len(), 1.0);
@@ -24,11 +28,16 @@ impl MainState {
             cactus_manager.add_cactus(cactus);
         }
 
+        let _ = ecs.new_entity();
+        let dino = ecs.new_entity();
+
         let (width, height) = graphics::drawable_size(ctx);
 
         let s = MainState{
             ecs,
             dino,
+            ground1,
+            ground2,
             cactus_manager,
             screen_width: width,
             screen_height: height,
@@ -44,7 +53,7 @@ impl MainState {
             v2!(0.0, 0.0),
             v2!(0.0, DINO_GRAVITY),
         );
-        let mut dino_collider = BoxCollider::new(v2!(34., 47.));
+        let mut dino_collider = BoxCollider::new(v2!(34., 46.)).with_offset(v2!(12., 2.));
         dino_collider.ground_check_on();
         let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun, 4);
         let dino_state_machine = AnimStateMachine::new(&mut self.assets, AssetTag::DinoStateMachine, DinoState::Run);
@@ -67,7 +76,7 @@ impl MainState {
                 cactus,
                 Movable::new(
                     v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + hs.y),
-                    v2!(-CACTUS_SPEED, 0.0),
+                    v2!(-SCROLL_SPEED, 0.0),
                     Vec2::ZERO,
                 )
             );
@@ -75,6 +84,26 @@ impl MainState {
             self.ecs.add_component(cactus, Sprite::new(cactus_tags[i]));
             // self.components.add_component(cactus, CircleGraphic::new(20.0));
         }
+
+        // GROUND
+        let mut ground_mov = Movable::new(
+            v2!(0., 0.),
+            v2!(-SCROLL_SPEED, 0.),
+            v2!(0., 0.)
+        );
+        let ground_spr_1 = Sprite::new(AssetTag::Ground1);
+        let ground_spr_2 = Sprite::new(AssetTag::Ground2);
+        let w = self.assets.get_image(AssetTag::Ground1).unwrap().width() as f32;
+        let ground_scr = EndlessScroll::new(w);
+
+        self.ecs.add_component(self.ground1, ground_mov);
+        self.ecs.add_component(self.ground1, ground_spr_1);
+        self.ecs.add_component(self.ground1, ground_scr);
+
+        ground_mov.pos.x += w;
+        self.ecs.add_component(self.ground2, ground_mov);
+        self.ecs.add_component(self.ground2, ground_spr_2);
+        self.ecs.add_component(self.ground2, ground_scr);
     }
 }
 
@@ -89,9 +118,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
 
+            if self.input.pause() {continue}
+
             update! {
                 [&mut self.ecs, &self.assets, time, dt]
-                Movable:                            self.dino;
+                Movable:                            self.dino, self.ground1, self.ground2;
+                EndlessScroll:                      self.ground1, self.ground2;
                 DinoController:                     self.dino;
                 AnimStateMachine::<DinoState>:      self.dino;
                 Animation:                          self.dino;
@@ -101,7 +133,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             if self.cactus_manager.check_collision(&mut self.ecs, self.dino) {
                 println!("Game over!");
-                let _ = event::quit(ctx);
+                self.input.toggle_pause();
+                // let _ = event::quit(ctx);
             }
         }
         Ok(())
@@ -112,14 +145,18 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         let screen_size = (self.screen_width, self.screen_height);
 
-        draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
-
-        for (anim, movable) in iter_zip!(self.ecs, Animation, Movable) {
-            anim.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
-        }
+        // draw_ground(ctx, 10.0, Color::BLACK, screen_size)?;
 
         for (sprite, movable) in iter_zip!(self.ecs, Sprite, Movable) {
-            sprite.draw(ctx, &mut self.assets, movable.pos, screen_size)?;
+            sprite.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
+        }
+
+        for (anim, movable) in iter_zip!(self.ecs, Animation, Movable) {
+            anim.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
+        }
+
+        for (col, movable) in iter_zip!(self.ecs, BoxCollider, Movable) {
+            col.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
         }
 
         // for (circle_graphic, movable) in iter_zip!(self.components, CircleGraphic, Movable) {
@@ -150,6 +187,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
         match keycode {
             KeyCode::Space | KeyCode::Up => {
                 self.input.jump_end();
+            }
+            KeyCode::Escape => {
+                self.input.toggle_pause();
             }
             _ => (),
         }

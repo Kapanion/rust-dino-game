@@ -1,3 +1,4 @@
+use ggez::graphics::DrawParam;
 use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -82,6 +83,19 @@ impl BoxCollider{
     }
 }
 
+impl Draw for BoxCollider{
+    fn draw(&self, ctx: &mut Context, ecs: &ECS, assets: &Assets, entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult {
+        let pos = world_to_screen_coords(screen_size, pos + self.offset) - self.half_size;
+        let rectangle = graphics::Mesh::new_rectangle(
+            ctx,
+            graphics::DrawMode::stroke(1.5),
+            graphics::Rect::new(pos.x, pos.y, self.half_size.x * 2.0, self.half_size.y * 2.0),
+            Color::GREEN
+        )?;
+        graphics::draw(ctx, &rectangle, DrawParam::new())
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum BoundType{
     Left,
@@ -108,7 +122,6 @@ impl BoundType{
         }
     }
 }
-
 
 // mod tests {
 //     use super::*;
