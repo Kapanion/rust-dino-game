@@ -79,7 +79,8 @@ impl MainState {
             hs.y *= q;
             let col_low = BoxCollider::new(hs).with_offset(col_offs);
             let pad = 18.0 * img.height() as f32 / 100.0;
-            let hs = v2!(img.width() as f32 / 2.0 - pad, img.height() as f32 / 2.0);
+            let mut hs = v2!(img.width() as f32 / 2.0 - pad, img.height() as f32 / 2.0);
+            hs.y -= 2.;
             let col_high = BoxCollider::new(hs);
             self.ecs.add_component(
                 cactus,

@@ -165,7 +165,7 @@ impl Collider {
                 ans_set = true;
                 continue;
             }
-            if bound_type.horizontal() {if comp(ans.x, bound.x) {ans = bound;}}
+            if bound_type.horizontal() {if comp(bound.x, ans.x) {ans = bound;}}
             else {if comp(bound.y, ans.y) {ans = bound;}}
         }
         ans
@@ -223,5 +223,12 @@ mod tests {
         let box_col = BoxCollider::new(v2!(10., 10.)).with_offset(v2!(-5., 0.));
         let col = Collider::new_single(box_col);
         assert_eq!(col.get_bound_offset(BoundType::Left), v2!(-15.0, 0.0));
+    }
+    #[test]
+    fn bound_test_2(){
+        let box_col_1 = BoxCollider::new(v2!(5., 5.));//.with_offset(v2!(-5., 0.));
+        let box_col_2 = BoxCollider::new(v2!(10., 10.));//.with_offset(v2!(-5., 0.));
+        let col = Collider::new_double(box_col_1, box_col_2);
+        assert_eq!(col.get_bound_offset(BoundType::Right), v2!(10.0, 0.0));
     }
 }
