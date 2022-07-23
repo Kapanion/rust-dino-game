@@ -5,7 +5,6 @@ use crate::prelude::*;
 pub struct BoxCollider{
     half_size: Vec2,
     offset: Vec2,
-    pub ground_check: bool,
 }
 
 impl BoxCollider{
@@ -13,12 +12,7 @@ impl BoxCollider{
         BoxCollider{
             half_size,
             offset: v2!(0.0, 0.0),
-            ground_check: false,
         }
-    }
-
-    pub fn ground_check_on(&mut self){
-        self.ground_check = true;
     }
 
     pub fn with_offset(&self, offset: Vec2) -> BoxCollider{
@@ -43,19 +37,9 @@ impl BoxCollider{
         arr
     }
 
-    fn get_pos(&self, ecs: &ECS, entity_id: usize) -> Vec2{
-        ecs.get_component::<Movable>(entity_id).unwrap().pos + self.offset
-    }
-
-    pub fn check_collision(ecs: &ECS, entity1: usize, entity2: usize) -> bool {
-        let col1 = ecs.get_component::<BoxCollider>(entity1);
-        if col1 == None {return false}
-        let col1 = col1.unwrap();
-        let col2 = ecs.get_component::<BoxCollider>(entity2);
-        if col2 == None {return false}
-        let col2 = col2.unwrap();
-        let pos1 = col1.get_pos(ecs, entity1);
-        let pos2 = col2.get_pos(ecs, entity2);
+    pub fn check_collision(col1: BoxCollider, col2: BoxCollider, pos1: Vec2, pos2: Vec2) -> bool{
+        let pos1 = pos1 + col1.offset;
+        let pos2 = pos2 + col2.offset;
         for corner in col1.get_corners(pos1){
             if col2.contains_point(pos2, corner) {
                 return true;
@@ -69,22 +53,35 @@ impl BoxCollider{
         false
     }
 
+    pub fn check_entity_collision(ecs: &ECS, entity1: usize, entity2: usize) -> bool {
+        let col1 = ecs.get_component::<BoxCollider>(entity1);
+        if col1 == None {return false}
+        let col1 = col1.unwrap();
+        let col2 = ecs.get_component::<BoxCollider>(entity2);
+        if col2 == None {return false}
+        let col2 = col2.unwrap();
+        let pos1 = Collider::get_pos(ecs, entity1);
+        let pos2 = Collider::get_pos(ecs, entity2);
+        BoxCollider::check_collision(col1, col2, pos1, pos2)
+    }
+
     pub fn get_bound_offset(&self, bound: BoundType) -> Vec2{
-        match bound{
-            BoundType::Up    => Vec2::new(0.0,  self.half_size.y),
-            BoundType::Down  => Vec2::new(0.0, -self.half_size.y),
-            BoundType::Left  => Vec2::new(-self.half_size.x, 0.0),
-            BoundType::Right => Vec2::new( self.half_size.x, 0.0),
+        self.offset +
+        match bound {
+            BoundType::Up    => v2!(0.0,  self.half_size.y),
+            BoundType::Down  => v2!(0.0, -self.half_size.y),
+            BoundType::Left  => v2!(-self.half_size.x, 0.0),
+            BoundType::Right => v2!( self.half_size.x, 0.0),
         }
     }
 
-    pub fn get_bound(&self, ecs: &ECS, entity_id: usize, bound: BoundType) -> Vec2{
-        self.get_pos(ecs, entity_id) + self.get_bound_offset(bound)
+    pub fn get_bound(&self, pos: Vec2, bound: BoundType) -> Vec2{
+        pos + self.get_bound_offset(bound)
     }
 }
 
 impl Draw for BoxCollider{
-    fn draw(&self, ctx: &mut Context, ecs: &ECS, assets: &Assets, entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult {
+    fn draw(&self, ctx: &mut Context, _ecs: &ECS, _assets: &Assets, _entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult {
         let pos = world_to_screen_coords(screen_size, pos + self.offset) - self.half_size;
         let rectangle = graphics::Mesh::new_rectangle(
             ctx,
@@ -96,7 +93,101 @@ impl Draw for BoxCollider{
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Collider {
+    col: [Option<BoxCollider>; NUM_OF_COLLIDERS],
+}
+
+impl Collider {
+    pub fn new(col: [Option<BoxCollider>; NUM_OF_COLLIDERS]) -> Collider {
+        Collider {
+            col,
+        }
+    }
+    pub fn new_single(col1: BoxCollider) -> Collider {
+        let mut col = [None; NUM_OF_COLLIDERS];
+        col[0] = Some(col1);
+        Collider {
+            col,
+        }
+    }
+    pub fn new_double(col1: BoxCollider, col2: BoxCollider) -> Collider {
+        let mut col = [None; NUM_OF_COLLIDERS];
+        col[0] = Some(col1);
+        col[1] = Some(col2);
+        Collider {
+            col,
+        }
+    }
+
+    fn get_pos(ecs: &ECS, entity_id: usize) -> Vec2{
+        ecs.get_component::<Movable>(entity_id).unwrap().pos
+    }
+
+    pub fn check_entity_collision(ecs: &ECS, entity1: usize, entity2: usize) -> bool {
+        let col1 = ecs.get_component::<Collider>(entity1);
+        if col1 == None {return false}
+        let col1 = col1.unwrap();
+        let col2 = ecs.get_component::<Collider>(entity2);
+        if col2 == None {return false}
+        let col2 = col2.unwrap();
+        let pos1 = Collider::get_pos(ecs, entity1);
+        let pos2 = Collider::get_pos(ecs, entity2);
+        for c1 in col1.col{
+            if c1 == None {continue}
+            let c1 = c1.unwrap();
+            for c2 in col2.col{
+                if c2 == None {continue}
+                let c2 = c2.unwrap();
+                if BoxCollider::check_collision(c1, c2, pos1, pos2) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn get_bound_offset(&self, bound_type: BoundType) -> Vec2{
+        let mut ans = v2!(0., 0.);
+        let mut ans_set = false;
+        let comp =
+            if bound_type == BoundType::Left || bound_type == BoundType::Down {
+                |val1, val2| {val1 < val2}
+            }
+            else{
+                |val1, val2| {val1 > val2}
+            };
+        for col in self.col{
+            if col == None {continue}
+            let bound =  col.unwrap().get_bound_offset(bound_type);
+            if !ans_set{
+                ans = bound;
+                ans_set = true;
+                continue;
+            }
+            if bound_type.horizontal() {if comp(ans.x, bound.x) {ans = bound;}}
+            else {if comp(bound.y, ans.y) {ans = bound;}}
+        }
+        ans
+    }
+
+    pub fn get_bound(&self, ecs: &ECS, entity_id: usize, bound_type: BoundType) -> Vec2{
+        let pos = Collider::get_pos(ecs, entity_id);
+        pos + self.get_bound_offset(bound_type)
+    }
+}
+
+impl Draw for Collider{
+    fn draw(&self, ctx: &mut Context, _ecs: &ECS, _assets: &Assets, _entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult {
+        for col in self.col{
+            if col == None {continue}
+            col.unwrap().draw(ctx, _ecs, _assets, _entity_id, pos, screen_size)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BoundType{
     Left,
     Right,
@@ -123,27 +214,14 @@ impl BoundType{
     }
 }
 
-// mod tests {
-//     use super::*;
-//     use crate::v2;
-//     #[test]
-//     fn regular_overlap() {
-//         let mut col1 = BoxCollider{pos: v2!(0.0, 0.0), half_size: v2!(5.0, 5.0)};
-//         let mut col2 = BoxCollider{pos: v2!(9.0, 9.0), half_size: v2!(5.0, 5.0)};
-//         assert_eq!(col1.check_collision(&mut col2), true);
-//     }
-//
-//     #[test]
-//     fn no_overlap() {
-//         let mut col1 = BoxCollider{pos: v2!(0.0, 0.0), half_size: v2!(5.0, 5.0)};
-//         let mut col2 = BoxCollider{pos: v2!(9.0, 11.0), half_size: v2!(5.0, 5.0)};
-//         assert_eq!(col1.check_collision(&mut col2), false);
-//     }
-//
-//     #[test]
-//     fn one_box_inside() {
-//         let mut col1 = BoxCollider{pos: v2!(0.0, 0.0), half_size: v2!(5.0, 5.0)};
-//         let mut col2 = BoxCollider{pos: v2!(0.0, 0.0), half_size: v2!(15.0, 15.0)};
-//         assert_eq!(col1.check_collision(&mut col2), true);
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::v2;
+    #[test]
+    fn bound_test(){
+        let box_col = BoxCollider::new(v2!(10., 10.)).with_offset(v2!(-5., 0.));
+        let col = Collider::new_single(box_col);
+        assert_eq!(col.get_bound_offset(BoundType::Left), v2!(-15.0, 0.0));
+    }
+}

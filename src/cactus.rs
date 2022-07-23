@@ -91,10 +91,11 @@ impl CactusManager{
     fn check_for_next_cactus(&mut self, ecs: &mut ECS, time: f32) {
         if time < self.next_spawn_time {return}
         let next_cactus = self.pool.activate_next().unwrap();
+        println!("Cactus {next_cactus} activated");
 
         let mut mov: Movable = ecs.get_component(next_cactus).unwrap();
         mov.pos.x =
-            SCREEN.0 / 2.0 - ecs.get_component::<BoxCollider>(next_cactus)
+            SCREEN.0 / 2.0 - ecs.get_component::<Collider>(next_cactus)
                 .unwrap()
                 .get_bound_offset(BoundType::Left)
                 .x;
@@ -106,8 +107,9 @@ impl CactusManager{
         for i in 0..self.pool.cacti.len() {
             if self.pool.cacti[i].active{
                 let id = self.pool.cacti[i].id;
-                let col = ecs.get_component::<BoxCollider>(id).unwrap();
-                if col.get_bound(ecs, id, BoundType::Right).x < - SCREEN.0 / 2.0 {
+                let col = ecs.get_component::<Collider>(id).unwrap();
+                let right_bound = col.get_bound(ecs, id, BoundType::Right).x;
+                if right_bound < - SCREEN.0 / 2.0 {
                     self.pool.deactivate(id);
                 }
                 else{
@@ -120,7 +122,7 @@ impl CactusManager{
     pub fn check_collision(&self, ecs: &ECS, entity_id: usize) -> bool{
         for i in 0..self.pool.cacti.len() {
             if self.pool.cacti[i].active{
-                if BoxCollider::check_collision(ecs, entity_id, self.pool.cacti[i].id) {
+                if Collider::check_entity_collision(ecs, entity_id, self.pool.cacti[i].id) {
                     return true;
                 }
             }

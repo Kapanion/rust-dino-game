@@ -76,7 +76,7 @@ impl<State: 'static + Copy + Clone + PartialEq> AnimStateMachine<State> {
 impl<State: 'static + Copy + Clone + PartialEq> Update for AnimStateMachine<State>{
     fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, _time: f32, _dt: f32) {
         let mut anim = ecs.get_component::<AnimStateMachine<State>>(entity_id).unwrap();
-        anim.update_state(ecs, &assets, entity_id);
+        anim.update_state(ecs, assets, entity_id);
         ecs.set_component(entity_id, anim);
     }
 }

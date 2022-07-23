@@ -7,7 +7,7 @@ pub mod dino;
 
 pub use movable::{Movable, EndlessScroll};
 pub use ezshape::CircleGraphic;
-pub use collision::BoxCollider;
+pub use collision::{Collider, BoxCollider};
 pub use sprite::Sprite;
 pub use animation::{Animation, AnimStateMachine};
 pub use dino::{DinoState, DinoController};

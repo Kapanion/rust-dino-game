@@ -5,6 +5,8 @@ pub const JUMP_VELOCITY     : f32 =  1000.0;
 pub const DINO_GRAVITY      : f32 = -2500.0;
 pub const SCROLL_SPEED      : f32 =   450.0;
 
+pub const NUM_OF_COLLIDERS  : usize = 2;
+
 pub const SCREEN: Screen2 = (1200.0, 600.0);
 
 pub const RNG_SEED: u64 = 69420;

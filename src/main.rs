@@ -48,13 +48,15 @@ impl MainState {
     }
     fn start(&mut self, _ctx: &mut Context) {
         // DINO
-        let dino_movable = Movable::new(
+        let mut dino_movable = Movable::new(
             v2!(-200.0, 200.0),
             v2!(0.0, 0.0),
             v2!(0.0, DINO_GRAVITY),
         );
-        let mut dino_collider = BoxCollider::new(v2!(34., 46.)).with_offset(v2!(12., 2.));
-        dino_collider.ground_check_on();
+        dino_movable.ground_check_on();
+        let dino_collider_body = BoxCollider::new(v2!(14., 25.)).with_offset(v2!(-6., -18.));
+        let dino_collider_head = BoxCollider::new(v2!(22., 17.)).with_offset(v2!(18., 32.));
+        let dino_collider = Collider::new_double(dino_collider_body, dino_collider_head);
         let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun, 4);
         let dino_state_machine = AnimStateMachine::new(&mut self.assets, AssetTag::DinoStateMachine, DinoState::Run);
 
@@ -71,7 +73,14 @@ impl MainState {
         for i in 0..cactus_tags.len() {
             let cactus = self.cactus_manager.id(i);
             let img = self.assets.get_image(cactus_tags[i]).unwrap();
-            let hs = v2!(img.width() as f32 / 2.0, img.height() as f32 / 2.0);
+            let mut hs = v2!(img.width() as f32 / 2.0, img.height() as f32 / 2.0);
+            let q: f32 = 0.7;
+            let col_offs = v2!(0., -hs.y * (1. - q) / 2.);
+            hs.y *= q;
+            let col_low = BoxCollider::new(hs).with_offset(col_offs);
+            let pad = 18.0 * img.height() as f32 / 100.0;
+            let hs = v2!(img.width() as f32 / 2.0 - pad, img.height() as f32 / 2.0);
+            let col_high = BoxCollider::new(hs);
             self.ecs.add_component(
                 cactus,
                 Movable::new(
@@ -80,7 +89,7 @@ impl MainState {
                     Vec2::ZERO,
                 )
             );
-            self.ecs.add_component(cactus,BoxCollider::new(hs));
+            self.ecs.add_component(cactus,Collider::new_double(col_low, col_high));
             self.ecs.add_component(cactus, Sprite::new(cactus_tags[i]));
             // self.components.add_component(cactus, CircleGraphic::new(20.0));
         }
@@ -133,7 +142,15 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             if self.cactus_manager.check_collision(&mut self.ecs, self.dino) {
                 println!("Game over!");
+                self.ecs.set_component::<DinoState>(self.dino, DinoState::Dead);
+                update! {
+                    [&mut self.ecs, &self.assets, time, dt]
+                    AnimStateMachine::<DinoState>:      self.dino;
+                    Animation:                          self.dino;
+                };
                 self.input.toggle_pause();
+                println!("{:?}", self.ecs.get_component::<DinoState>(self.dino).unwrap());
+                self.draw(ctx)?;
                 // let _ = event::quit(ctx);
             }
         }
@@ -141,7 +158,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
     }
     
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, [0.8, 0.8, 0.8, 1.0].into());
+        const RGBVAL: f32 = 247. / 255.;
+        graphics::clear(ctx, Color::new(RGBVAL, RGBVAL, RGBVAL, 1.0));
 
         let screen_size = (self.screen_width, self.screen_height);
 
@@ -155,9 +173,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
             anim.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
         }
 
-        for (col, movable) in iter_zip!(self.ecs, BoxCollider, Movable) {
-            col.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
-        }
+        // for (col, movable) in iter_zip!(self.ecs, Collider, Movable) {
+        //     col.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
+        // }
 
         // for (circle_graphic, movable) in iter_zip!(self.components, CircleGraphic, Movable) {
         //     circle_graphic.draw(ctx, movable.pos, screen_size)?;

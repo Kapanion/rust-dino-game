@@ -23,7 +23,10 @@ impl Sprite{
 
 impl Draw for Sprite{
     fn draw(&self, ctx: &mut Context, ecs: &ECS, assets: &Assets, entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult{
-        let pos = world_to_screen_coords(screen_size, pos);
+        let mut pos = world_to_screen_coords(screen_size, pos);
+        // Floor the coordinates to prevent blurring
+        pos.x = pos.x.floor();
+        pos.y = pos.y.floor();
         let draw_params = graphics::DrawParam::new()
             .dest(pos)
             .offset(self.offset);
