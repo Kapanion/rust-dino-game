@@ -59,6 +59,12 @@ impl CactusPool{
             }
         }
     }
+
+    fn deactivate_all(&mut self){
+        for i in 0..self.cacti.len(){
+            self.cacti[i].active = false;
+        }
+    }
 }
 
 pub struct CactusManager{
@@ -88,10 +94,13 @@ impl CactusManager{
     pub fn add_cactus(&mut self, id: usize){
         self.pool.add_cactus(id);
     }
+    pub fn deactivate_all(&mut self){
+        self.pool.deactivate_all();
+    }
     fn check_for_next_cactus(&mut self, ecs: &mut ECS, time: f32) {
         if time < self.next_spawn_time {return}
         let next_cactus = self.pool.activate_next().unwrap();
-        println!("Cactus {next_cactus} activated");
+        // println!("Cactus {next_cactus} activated");
 
         let mut mov: Movable = ecs.get_component(next_cactus).unwrap();
         mov.pos.x =

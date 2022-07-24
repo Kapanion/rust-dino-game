@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use collision::BoundType;
 
 #[macro_export]
 macro_rules! v2 {

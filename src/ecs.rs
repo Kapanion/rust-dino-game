@@ -56,6 +56,26 @@ impl ECS {
             .push(Box::new(new_component_vec));
     }
 
+    pub fn get_component<ComponentType: 'static +  Copy + Clone>(
+        &self,
+        entity_id: usize,
+    ) -> Option<ComponentType> {
+        if let Some(component_vec) = self.borrow_component_vec::<ComponentType>(){
+            return component_vec[entity_id];
+        }
+        None
+    }
+
+    pub fn set_component<ComponentType: 'static + Copy + Clone>(
+        &mut self,
+        entity_id: usize,
+        new_component: ComponentType,
+    ){
+        if let Some(component_vec) = self.borrow_component_vec_mut::<ComponentType>(){
+            component_vec[entity_id] = Some(new_component);
+        }
+    }
+
     pub fn borrow_component_vec<ComponentType: 'static>(
         &self,
     ) -> Option<&Vec<Option<ComponentType>>> {
@@ -82,26 +102,6 @@ impl ECS {
             }
         }
         None
-    }
-
-    pub fn get_component<ComponentType: 'static +  Copy + Clone>(
-        &self,
-        entity_id: usize,
-    ) -> Option<ComponentType> {
-        if let Some(component_vec) = self.borrow_component_vec::<ComponentType>(){
-            return component_vec[entity_id];
-        }
-        None
-    }
-
-    pub fn set_component<ComponentType: 'static + Copy + Clone>(
-        &mut self,
-        entity_id: usize,
-        new_component: ComponentType,
-    ){
-        if let Some(component_vec) = self.borrow_component_vec_mut::<ComponentType>(){
-            component_vec[entity_id] = Some(new_component);
-        }
     }
 
 }
