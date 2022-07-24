@@ -5,6 +5,7 @@ struct MainState {
     dino: usize,
     ground1: usize,
     ground2: usize,
+    cloud: usize,
     cactus_manager: CactusManager,
     screen_width: f32,
     screen_height: f32,
@@ -20,6 +21,8 @@ impl MainState {
 
         let ground1 = ecs.new_entity();
         let ground2 = ecs.new_entity();
+
+        let cloud = ecs.new_entity();
 
         let cactus_tags = AssetTag::cactus_tags();
         let mut cactus_manager = CactusManager::with_capacity(cactus_tags.len(), 1.0);
@@ -38,6 +41,7 @@ impl MainState {
             dino,
             ground1,
             ground2,
+            cloud,
             cactus_manager,
             screen_width: width,
             screen_height: height,
@@ -114,6 +118,20 @@ impl MainState {
         self.ecs.add_component(self.ground2, ground_mov);
         self.ecs.add_component(self.ground2, ground_spr_2);
         self.ecs.add_component(self.ground2, ground_scr);
+
+        // CLOUD
+        let mut cloud_mov = Movable::new(
+            v2!(0., 200.),
+            v2!(-SCROLL_SPEED / 2.0, 0.),
+            v2!(0., 0.)
+        );
+        let cloud_spr = Sprite::new(AssetTag::Cloud);
+        let w = self.assets.get_image(AssetTag::Cloud).unwrap().width() as f32;
+        let cloud_scr = EndlessScroll::new(w);
+
+        self.ecs.add_component(self.cloud, cloud_mov);
+        self.ecs.add_component(self.cloud, cloud_spr);
+        self.ecs.add_component(self.cloud, cloud_scr);
     }
     fn restart(&mut self) {
         // DINO
@@ -140,7 +158,6 @@ impl MainState {
                 )
             );
         }
-
         self.cactus_manager.deactivate_all();
 
         self.input = InputState::new();
@@ -166,8 +183,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             update! {
                 [&mut self.ecs, &self.assets, time, dt]
-                Movable:                            self.dino, self.ground1, self.ground2;
-                EndlessScroll:                      self.ground1, self.ground2;
+                Movable:                            self.dino, self.ground1, self.ground2, self.cloud;
+                EndlessScroll:                      self.ground1, self.ground2, self.cloud;
                 DinoController:                     self.dino;
                 AnimStateMachine::<DinoState>:      self.dino;
                 Animation:                          self.dino;

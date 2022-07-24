@@ -81,7 +81,7 @@ impl Update for EndlessScroll{
         let mut mov = ecs.get_component::<Movable>(entity_id).unwrap();
         let scroll = ecs.get_component::<EndlessScroll>(entity_id).unwrap();
         if mov.pos.x + scroll.width / 2.0 < -SCREEN.0 / 2.0 {
-            mov.pos.x += scroll.width * 2.;
+            mov.pos.x += scroll.width + SCREEN.0;
             ecs.set_component(entity_id, mov);
         }
     }
