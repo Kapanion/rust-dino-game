@@ -18,6 +18,7 @@ impl InputState{
         }
     }
     pub fn jump_start(&mut self){
+        if self.pause {return}
         self.jump = true;
     }
     pub fn jump_end(&mut self){
@@ -27,6 +28,7 @@ impl InputState{
         self.jump
     }
     pub fn toggle_pause(&mut self){
+        if !self.game_active {return}
         self.pause = !self.pause;
     }
     pub fn pause(&self) -> bool{

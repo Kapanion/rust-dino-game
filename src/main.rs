@@ -77,6 +77,7 @@ impl MainState {
         for i in 0..cactus_tags.len() {
             let cactus = self.cactus_manager.id(i);
             let img = self.assets.get_image(cactus_tags[i]).unwrap();
+            // Some math for calculating cactus colliders
             let mut hs = v2!(img.width() as f32 / 2.0, img.height() as f32 / 2.0);
             let q: f32 = 0.7;
             let col_offs = v2!(0., -hs.y * (1. - q) / 2.);
@@ -86,10 +87,15 @@ impl MainState {
             let mut hs = v2!(img.width() as f32 / 2.0 - pad, img.height() as f32 / 2.0);
             hs.y -= 2.;
             let col_high = BoxCollider::new(hs);
+            let mut offset_y =
+                if img.height() == 100{ // big cactus
+                    if img.width() > 100 {-2.}
+                    else {-4.}
+                } else {0.};
             self.ecs.add_component(
                 cactus,
                 Movable::new(
-                    v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + img.height() as f32 / 2.0),
+                    v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + img.height() as f32 / 2.0 + offset_y),
                     v2!(-SCROLL_SPEED, 0.0),
                     Vec2::ZERO,
                 )
@@ -181,16 +187,17 @@ impl event::EventHandler<ggez::GameError> for MainState {
             }
             if self.input.pause() || !self.input.game_active() {continue}
 
+            self.cactus_manager.update(&mut self.ecs, time, dt);
+
             update! {
                 [&mut self.ecs, &self.assets, time, dt]
-                Movable:                            self.dino, self.ground1, self.ground2, self.cloud;
-                EndlessScroll:                      self.ground1, self.ground2, self.cloud;
                 DinoController:                     self.dino;
+                EndlessScroll:                      self.ground1, self.ground2, self.cloud;
+                Movable:                            self.dino, self.ground1, self.ground2, self.cloud;
                 AnimStateMachine::<DinoState>:      self.dino;
                 Animation:                          self.dino;
             };
 
-            self.cactus_manager.update(&mut self.ecs, time, dt);
 
             // Losing the game
             if self.cactus_manager.check_collision(&mut self.ecs, self.dino) {
@@ -258,7 +265,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             KeyCode::Space | KeyCode::Up => {
                 self.input.jump_end();
             }
-            KeyCode::Escape => {
+            KeyCode::Q => {
                 self.input.toggle_pause();
             }
             _ => (),
