@@ -1,16 +1,19 @@
 use dino_game::prelude::*;
 
-struct MainState {
-    ecs: ECS,
+struct EntityIds{
     dino: usize,
     ground1: usize,
     ground2: usize,
     cloud: usize,
+}
+
+struct MainState {
+    ecs: ECS,
+    ent: EntityIds,
     cactus_manager: CactusManager,
-    screen_width: f32,
-    screen_height: f32,
     input: InputState,
     assets: Box<Assets>,
+    score: f32,
 }
 
 impl MainState {
@@ -24,29 +27,29 @@ impl MainState {
 
         let cloud = ecs.new_entity();
 
+        let mov_vec = vec![ground1, ground2];
+
         let cactus_tags = AssetTag::cactus_tags();
-        let mut cactus_manager = CactusManager::with_capacity(cactus_tags.len(), 1.0);
+        let mut cactus_manager = CactusManager::with_capacity(cactus_tags.len(), CACTUS_MIN_DELAY, mov_vec);
         for _ in 0..cactus_tags.len() {
             let cactus = ecs.new_entity();
             cactus_manager.add_cactus(cactus);
         }
 
-        let _ = ecs.new_entity();
         let dino = ecs.new_entity();
-
-        let (width, height) = graphics::drawable_size(ctx);
 
         let s = MainState{
             ecs,
-            dino,
-            ground1,
-            ground2,
-            cloud,
+            ent: EntityIds{
+                dino,
+                ground1,
+                ground2,
+                cloud,
+            },
             cactus_manager,
-            screen_width: width,
-            screen_height: height,
             input: InputState::new(),
             assets,
+            score: 0.,
         };
         Ok(s)
     }
@@ -64,12 +67,12 @@ impl MainState {
         let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun, 4);
         let dino_state_machine = AnimStateMachine::new(&mut self.assets, AssetTag::DinoStateMachine, DinoState::Run);
 
-        self.ecs.add_component(self.dino, dino_movable);
-        self.ecs.add_component(self.dino, dino_collider);
-        self.ecs.add_component(self.dino, dino_anim);
-        self.ecs.add_component(self.dino, DinoController::new(self.dino));
-        self.ecs.add_component(self.dino, DinoState::Run);
-        self.ecs.add_component(self.dino, dino_state_machine);
+        self.ecs.add_component(self.ent.dino, dino_movable);
+        self.ecs.add_component(self.ent.dino, dino_collider);
+        self.ecs.add_component(self.ent.dino, dino_anim);
+        self.ecs.add_component(self.ent.dino, DinoController::new(self.ent.dino));
+        self.ecs.add_component(self.ent.dino, DinoState::Run);
+        self.ecs.add_component(self.ent.dino, dino_state_machine);
         // self.components.add_component(dino, CircleGraphic::new(47.0));
 
         // CACTUS
@@ -96,7 +99,7 @@ impl MainState {
                 cactus,
                 Movable::new(
                     v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + img.height() as f32 / 2.0 + offset_y),
-                    v2!(-SCROLL_SPEED, 0.0),
+                    v2!(-START_SCROLL_SPEED, 0.0),
                     Vec2::ZERO,
                 )
             );
@@ -108,38 +111,40 @@ impl MainState {
         // GROUND
         let mut ground_mov = Movable::new(
             v2!(0., 0.),
-            v2!(-SCROLL_SPEED, 0.),
-            v2!(0., 0.)
+            v2!(-START_SCROLL_SPEED, 0.),
+            v2!()
         );
         let ground_spr_1 = Sprite::new(AssetTag::Ground1);
         let ground_spr_2 = Sprite::new(AssetTag::Ground2);
         let w = self.assets.get_image(AssetTag::Ground1).unwrap().width() as f32;
         let ground_scr = EndlessScroll::new(w);
 
-        self.ecs.add_component(self.ground1, ground_mov);
-        self.ecs.add_component(self.ground1, ground_spr_1);
-        self.ecs.add_component(self.ground1, ground_scr);
+        self.ecs.add_component(self.ent.ground1, ground_mov);
+        self.ecs.add_component(self.ent.ground1, ground_spr_1);
+        self.ecs.add_component(self.ent.ground1, ground_scr);
 
         ground_mov.pos.x += w;
-        self.ecs.add_component(self.ground2, ground_mov);
-        self.ecs.add_component(self.ground2, ground_spr_2);
-        self.ecs.add_component(self.ground2, ground_scr);
+        self.ecs.add_component(self.ent.ground2, ground_mov);
+        self.ecs.add_component(self.ent.ground2, ground_spr_2);
+        self.ecs.add_component(self.ent.ground2, ground_scr);
 
         // CLOUD
         let mut cloud_mov = Movable::new(
             v2!(0., 200.),
-            v2!(-SCROLL_SPEED / 2.0, 0.),
+            v2!(-START_SCROLL_SPEED / 2.0, 0.),
             v2!(0., 0.)
         );
         let cloud_spr = Sprite::new(AssetTag::Cloud);
         let w = self.assets.get_image(AssetTag::Cloud).unwrap().width() as f32;
         let cloud_scr = EndlessScroll::new(w);
 
-        self.ecs.add_component(self.cloud, cloud_mov);
-        self.ecs.add_component(self.cloud, cloud_spr);
-        self.ecs.add_component(self.cloud, cloud_scr);
+        self.ecs.add_component(self.ent.cloud, cloud_mov);
+        self.ecs.add_component(self.ent.cloud, cloud_spr);
+        self.ecs.add_component(self.ent.cloud, cloud_scr);
     }
     fn restart(&mut self) {
+        self.score = 0.;
+
         // DINO
         let mut dino_movable = Movable::new(
             v2!(-400.0, GROUND_Y_COORD),
@@ -147,24 +152,24 @@ impl MainState {
             v2!(0.0, DINO_GRAVITY),
         );
         dino_movable.ground_check_on();
-        self.ecs.add_component(self.dino, dino_movable);
-        self.ecs.set_component(self.dino, DinoState::Run);
+        self.ecs.set_component(self.ent.dino, dino_movable);
+        self.ecs.set_component(self.ent.dino, DinoState::Run);
 
         // CACTUS
         let cactus_tags = AssetTag::cactus_tags();
         for i in 0..cactus_tags.len() {
             let cactus = self.cactus_manager.id(i);
             let img = self.assets.get_image(cactus_tags[i]).unwrap();
-            self.ecs.add_component(
+            self.ecs.set_component(
                 cactus,
                 Movable::new(
                     v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + img.height() as f32 / 2.0),
-                    v2!(-SCROLL_SPEED, 0.0),
+                    v2!(-START_SCROLL_SPEED, 0.0),
                     Vec2::ZERO,
                 )
             );
         }
-        self.cactus_manager.deactivate_all();
+        self.cactus_manager.restart();
 
         self.input = InputState::new();
     }
@@ -179,7 +184,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
             let dt = 1.0 / (DESIRED_FPS as f32);
             let time = timer::time_since_start(ctx).as_secs_f32();
 
-            player_handle_input(&mut self.ecs, self.dino, &mut self.input, dt);
+            // INPUT STUFF
+            input::player_handle_input(&mut self.ecs, self.ent.dino, &mut self.input, dt);
 
             if self.input.restart() {
                 self.restart();
@@ -187,26 +193,31 @@ impl event::EventHandler<ggez::GameError> for MainState {
             }
             if self.input.pause() || !self.input.game_active() {continue}
 
+            // EVERYTHING ELSE
+            self.score += dt;
+            let score = (self.score * 10.) as u32;
+            println!("Score: {}", score);
+
             self.cactus_manager.update(&mut self.ecs, time, dt);
 
             update! {
                 [&mut self.ecs, &self.assets, time, dt]
-                DinoController:                     self.dino;
-                EndlessScroll:                      self.ground1, self.ground2, self.cloud;
-                Movable:                            self.dino, self.ground1, self.ground2, self.cloud;
-                AnimStateMachine::<DinoState>:      self.dino;
-                Animation:                          self.dino;
+                DinoController:                     self.ent.dino;
+                EndlessScroll:                      self.ent.ground1, self.ent.ground2, self.ent.cloud;
+                Movable:                            self.ent.dino, self.ent.ground1, self.ent.ground2, self.ent.cloud;
+                AnimStateMachine::<DinoState>:      self.ent.dino;
+                Animation:                          self.ent.dino;
             };
 
 
             // Losing the game
-            if self.cactus_manager.check_collision(&mut self.ecs, self.dino) {
+            if self.cactus_manager.check_collision(&mut self.ecs, self.ent.dino) {
                 println!("Game over!");
-                self.ecs.set_component::<DinoState>(self.dino, DinoState::Dead);
+                self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
                 update! {
                     [&mut self.ecs, &self.assets, time, dt]
-                    AnimStateMachine::<DinoState>:      self.dino;
-                    Animation:                          self.dino;
+                    AnimStateMachine::<DinoState>:      self.ent.dino;
+                    Animation:                          self.ent.dino;
                 };
                 self.input.game_over();
                 self.draw(ctx)?;
@@ -220,7 +231,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         const RGB_VAL: f32 = 247. / 255.;
         graphics::clear(ctx, Color::new(RGB_VAL, RGB_VAL, RGB_VAL, 1.0));
 
-        let screen_size = (self.screen_width, self.screen_height);
+        let screen_size = SCREEN;
 
         for (sprite, movable) in iter_zip!(self.ecs, Sprite, Movable) {
             sprite.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;

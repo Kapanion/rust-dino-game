@@ -72,23 +72,29 @@ pub struct CactusManager{
     delay: f32,
     next_spawn_time: f32,
     rng: oorandom::Rand32,
+    movable_ids: Box<Vec<usize>>,
+    scroll_speed: f32,
 }
 
 impl CactusManager{
-    pub fn new(delay: f32) -> CactusManager{
+    pub fn new(delay: f32, movable_ids: Vec<usize>) -> CactusManager{
         CactusManager{
             pool: CactusPool::new(),
             delay,
             next_spawn_time: 0.0,
-            rng: oorandom::Rand32::new(69420)
+            rng: oorandom::Rand32::new(RNG_SEED),
+            movable_ids: Box::new(movable_ids),
+            scroll_speed: START_SCROLL_SPEED,
         }
     }
-    pub fn with_capacity(capacity: usize, delay: f32) -> CactusManager{
+    pub fn with_capacity(capacity: usize, delay: f32, movable_ids: Vec<usize>) -> CactusManager{
         CactusManager{
             pool: CactusPool::with_capacity(capacity),
             delay,
             next_spawn_time: 0.0,
-            rng: oorandom::Rand32::new(69420)
+            rng: oorandom::Rand32::new(69420),
+            movable_ids: Box::new(movable_ids),
+            scroll_speed: START_SCROLL_SPEED,
         }
     }
     pub fn add_cactus(&mut self, id: usize){
@@ -96,6 +102,10 @@ impl CactusManager{
     }
     pub fn deactivate_all(&mut self){
         self.pool.deactivate_all();
+    }
+    pub fn restart(&mut self){
+        self.deactivate_all();
+        self.scroll_speed = START_SCROLL_SPEED;
     }
     fn check_for_next_cactus(&mut self, ecs: &mut ECS, time: f32) {
         if time < self.next_spawn_time {return}
@@ -110,7 +120,26 @@ impl CactusManager{
                 .x;
         ecs.set_component::<Movable>(next_cactus, mov);
 
-        self.next_spawn_time = time + self.delay;
+        self.update_movables_speed(ecs, self.scroll_speed);
+        self.next_spawn_time = time + self.delay + self.rng.rand_float() * 1.3;
+    }
+    fn update_movables_speed(&self, ecs: &mut ECS, new_vel: f32){
+        if self.scroll_speed == MAX_SCROLL_SPEED {return}
+        for id in self.movable_ids.iter() {
+            let mut mov = ecs.get_component::<Movable>(*id).unwrap();
+            mov.velocity.x = -new_vel;
+            ecs.set_component(*id, mov);
+        }
+        for entry in self.pool.cacti.iter() {
+            let id = entry.id;
+            let mut mov = ecs.get_component::<Movable>(id).unwrap();
+            mov.velocity.x = -new_vel;
+            ecs.set_component(id, mov);
+        }
+    }
+    fn update_scroll_speed(&mut self, dt: f32){
+        if self.scroll_speed >= MAX_SCROLL_SPEED {return}
+        self.scroll_speed += dt * 5.5;
     }
     pub fn update(&mut self, ecs: &mut ECS, time: f32, dt: f32){
         for i in 0..self.pool.cacti.len() {
@@ -127,6 +156,7 @@ impl CactusManager{
             }
         }
         self.check_for_next_cactus(ecs, time);
+        self.update_scroll_speed(dt);
     }
     pub fn check_collision(&self, ecs: &ECS, entity_id: usize) -> bool{
         for i in 0..self.pool.cacti.len() {

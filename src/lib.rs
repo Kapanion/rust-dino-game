@@ -39,9 +39,7 @@ pub trait Update{
     fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32);
 }
 
-
-/// World and screen positions
-
+// World and screen positions
 pub fn world_to_screen_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
     let x = point.x + screen_size.0 / 2.0;
     let y = screen_size.1 - (point.y + screen_size.1 / 2.0);

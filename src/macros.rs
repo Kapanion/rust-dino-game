@@ -5,6 +5,9 @@ macro_rules! v2 {
     ( $x:expr, $y:expr ) => {
         Vec2::new($x, $y)
     };
+    () => {
+        Vec2::ZERO
+    };
 }
 
 #[macro_export]
