@@ -36,7 +36,7 @@ impl Assets{
         let dino_anim_dead = (vec![
             Sprite::new(AssetTag::DinoDead),
         ], 1);
-        let font = graphics::Font::new(ctx, "/NotoSans-Regular.ttf").unwrap();
+        let font = graphics::Font::new(ctx, "/PressStart2P-Regular.ttf").unwrap();
         Box::new(
             Assets{
                 dino_run_l,
