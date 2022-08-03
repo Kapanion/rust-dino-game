@@ -19,6 +19,7 @@ pub struct Assets{
     pub dino_anim_run:  Anim,
     pub dino_anim_idle: Anim,
     pub dino_anim_dead: Anim,
+    pub font:           graphics::Font,
 }
 
 impl Assets{
@@ -35,6 +36,7 @@ impl Assets{
         let dino_anim_dead = (vec![
             Sprite::new(AssetTag::DinoDead),
         ], 1);
+        let font = graphics::Font::new(ctx, "/NotoSans-Regular.ttf").unwrap();
         Box::new(
             Assets{
                 dino_run_l,
@@ -53,6 +55,7 @@ impl Assets{
                 dino_anim_run,
                 dino_anim_idle,
                 dino_anim_dead,
+                font,
             }
         )
     }

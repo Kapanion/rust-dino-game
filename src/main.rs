@@ -1,5 +1,7 @@
 use dino_game::prelude::*;
 
+use std::io::Write;
+
 struct EntityIds{
     dino: usize,
     ground1: usize,
@@ -194,9 +196,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             if self.input.pause() || !self.input.game_active() {continue}
 
             // EVERYTHING ELSE
-            self.score += dt;
-            let score = (self.score * 10.) as u32;
-            println!("Score: {}", score);
+            self.score += dt * 10.;
+            // let score = self.score as u32;
+            // print!("\rScore: {}", score);
+            // std::io::stdout().flush().unwrap();
 
             self.cactus_manager.update(&mut self.ecs, time, dt);
 
@@ -212,7 +215,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             // Losing the game
             if self.cactus_manager.check_collision(&mut self.ecs, self.ent.dino) {
-                println!("Game over!");
+                println!("\nGame over!");
                 self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
                 update! {
                     [&mut self.ecs, &self.assets, time, dt]
@@ -250,6 +253,11 @@ impl event::EventHandler<ggez::GameError> for MainState {
         // for (circle_graphic, movable) in iter_zip!(self.components, CircleGraphic, Movable) {
         //     circle_graphic.draw(ctx, movable.pos, screen_size)?;
         // }
+
+        // Drawing text:
+        let score_str = format!("Score: {}", self.score as u32);
+        let score_display = graphics::Text::new((score_str, self.assets.font, 32.0));
+        graphics::draw(ctx, &score_display, (v2!(0., 0.), 0.0, Color::BLACK))?;
 
         graphics::present(ctx)?;
 
