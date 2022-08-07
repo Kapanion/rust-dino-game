@@ -2,15 +2,15 @@ use crate::prelude::*;
 use collision::BoundType;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct CactusEntry{
+struct ObstacleEntry {
     id: usize,
     active: bool,
     additional_speed: f32,
 }
 
-impl CactusEntry{
-    fn new(id: usize) -> CactusEntry{
-        CactusEntry{
+impl ObstacleEntry {
+    fn new(id: usize) -> ObstacleEntry {
+        ObstacleEntry {
             id,
             active: false,
             additional_speed: 0.,
@@ -21,65 +21,65 @@ impl CactusEntry{
     }
 }
 
-struct CactusPool{
-    cacti: Vec<CactusEntry>,
+struct ObstaclePool {
+    obstacles: Vec<ObstacleEntry>,
     rng: oorandom::Rand32,
 }
 
-impl CactusPool{
-    fn new() -> CactusPool{
-        CactusPool{
-            cacti: Vec::new(),
+impl ObstaclePool {
+    fn new() -> ObstaclePool {
+        ObstaclePool {
+            obstacles: Vec::new(),
             rng: oorandom::Rand32::new(RNG_SEED),
         }
     }
 
-    fn with_capacity(capacity: usize) -> CactusPool{
-        CactusPool{
-            cacti: Vec::with_capacity(capacity),
+    fn with_capacity(capacity: usize) -> ObstaclePool {
+        ObstaclePool {
+            obstacles: Vec::with_capacity(capacity),
             rng: oorandom::Rand32::new(RNG_SEED),
         }
     }
 
     fn add_cactus(&mut self, id: usize){
-        self.cacti.push(CactusEntry::new(id));
+        self.obstacles.push(ObstacleEntry::new(id));
     }
 
     fn add_ptero(&mut self, id: usize){
-        let mut entry = CactusEntry::new(id);
+        let mut entry = ObstacleEntry::new(id);
         entry.set_additional_speed(PTERO_SPEED);
-        self.cacti.push(entry);
+        self.obstacles.push(entry);
     }
 
     fn activate_next(&mut self) -> Option<usize>{
-        let next = (self.rng.rand_u32() as usize) % self.cacti.len();
-        for i in 0..self.cacti.len(){
-            let ind = (next + i) % self.cacti.len();
-            if !self.cacti[ind].active {
-                self.cacti[ind].active = true;
-                return Some(self.cacti[ind].id);
+        let next = (self.rng.rand_u32() as usize) % self.obstacles.len();
+        for i in 0..self.obstacles.len(){
+            let ind = (next + i) % self.obstacles.len();
+            if !self.obstacles[ind].active {
+                self.obstacles[ind].active = true;
+                return Some(self.obstacles[ind].id);
             }
         }
         None
     }
 
     fn deactivate(&mut self, id: usize) {
-        for i in 0..self.cacti.len(){
-            if self.cacti[i].id == id{
-                self.cacti[i].active = false;
+        for i in 0..self.obstacles.len(){
+            if self.obstacles[i].id == id{
+                self.obstacles[i].active = false;
             }
         }
     }
 
     fn deactivate_all(&mut self){
-        for i in 0..self.cacti.len(){
-            self.cacti[i].active = false;
+        for i in 0..self.obstacles.len(){
+            self.obstacles[i].active = false;
         }
     }
 }
 
-pub struct CactusManager{
-    pool: CactusPool,
+pub struct ObstacleManager {
+    pool: ObstaclePool,
     delay: f32,
     next_spawn_time: f32,
     rng: oorandom::Rand32,
@@ -87,10 +87,10 @@ pub struct CactusManager{
     scroll_speed: f32,
 }
 
-impl CactusManager{
-    pub fn new(delay: f32, movable_ids: Vec<usize>) -> CactusManager{
-        CactusManager{
-            pool: CactusPool::new(),
+impl ObstacleManager {
+    pub fn new(delay: f32, movable_ids: Vec<usize>) -> ObstacleManager {
+        ObstacleManager {
+            pool: ObstaclePool::new(),
             delay,
             next_spawn_time: 0.0,
             rng: oorandom::Rand32::new(RNG_SEED),
@@ -98,9 +98,9 @@ impl CactusManager{
             scroll_speed: START_SCROLL_SPEED,
         }
     }
-    pub fn with_capacity(capacity: usize, delay: f32, movable_ids: Vec<usize>) -> CactusManager{
-        CactusManager{
-            pool: CactusPool::with_capacity(capacity),
+    pub fn with_capacity(capacity: usize, delay: f32, movable_ids: Vec<usize>) -> ObstacleManager {
+        ObstacleManager {
+            pool: ObstaclePool::with_capacity(capacity),
             delay,
             next_spawn_time: 0.0,
             rng: oorandom::Rand32::new(69420),
@@ -121,7 +121,7 @@ impl CactusManager{
         self.deactivate_all();
         self.scroll_speed = START_SCROLL_SPEED;
     }
-    fn check_for_next_cactus(&mut self, ecs: &mut ECS, time: f32) {
+    fn check_for_next_obstacle(&mut self, ecs: &mut ECS, time: f32) {
         if time < self.next_spawn_time {return}
         let next_cactus = self.pool.activate_next().unwrap();
         // println!("Cactus {next_cactus} activated");
@@ -144,7 +144,7 @@ impl CactusManager{
             mov.velocity.x = -new_vel;
             ecs.set_component(*id, mov);
         }
-        for entry in self.pool.cacti.iter() {
+        for entry in self.pool.obstacles.iter() {
             let id = entry.id;
             let mut mov = ecs.get_component::<Movable>(id).unwrap();
             mov.velocity.x = -(new_vel + entry.additional_speed);
@@ -156,9 +156,9 @@ impl CactusManager{
         self.scroll_speed += dt * 5.5;
     }
     pub fn update(&mut self, ecs: &mut ECS, time: f32, dt: f32){
-        for i in 0..self.pool.cacti.len() {
-            if self.pool.cacti[i].active{
-                let id = self.pool.cacti[i].id;
+        for i in 0..self.pool.obstacles.len() {
+            if self.pool.obstacles[i].active{
+                let id = self.pool.obstacles[i].id;
                 let col = ecs.get_component::<Collider>(id).unwrap();
                 let right_bound = col.get_bound(ecs, id, BoundType::Right).x;
                 if right_bound < - SCREEN.0 / 2.0 {
@@ -169,13 +169,13 @@ impl CactusManager{
                 }
             }
         }
-        self.check_for_next_cactus(ecs, time);
+        self.check_for_next_obstacle(ecs, time);
         self.update_scroll_speed(dt);
     }
     pub fn check_collision(&self, ecs: &ECS, entity_id: usize) -> bool{
-        for i in 0..self.pool.cacti.len() {
-            if self.pool.cacti[i].active{
-                if Collider::check_entity_collision(ecs, entity_id, self.pool.cacti[i].id) {
+        for i in 0..self.pool.obstacles.len() {
+            if self.pool.obstacles[i].active{
+                if Collider::check_entity_collision(ecs, entity_id, self.pool.obstacles[i].id) {
                     return true;
                 }
             }
@@ -183,13 +183,13 @@ impl CactusManager{
         false
     }
     pub fn ids(&self) -> Vec<usize>{
-        let mut res = Vec::with_capacity(self.pool.cacti.len());
-        for entry in &self.pool.cacti{
+        let mut res = Vec::with_capacity(self.pool.obstacles.len());
+        for entry in &self.pool.obstacles {
             res.push(entry.id);
         }
         res
     }
     pub fn id(&self, ind: usize) -> usize {
-        self.pool.cacti[ind].id
+        self.pool.obstacles[ind].id
     }
 }

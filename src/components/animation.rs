@@ -13,7 +13,6 @@ pub struct Animation{
 impl Animation {
     pub fn new(assets: &Assets, asset_tag: AssetTag) -> Animation {
         let fps = assets.get_anim_fps(asset_tag).unwrap();
-        println!("{:?}: {fps}", asset_tag);
         Animation{
             asset_tag,
             len: assets.get_anim_length(asset_tag).unwrap(),

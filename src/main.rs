@@ -13,7 +13,7 @@ struct EntityIds{
 struct MainState {
     ecs: ECS,
     ent: EntityIds,
-    cactus_manager: CactusManager,
+    cactus_manager: ObstacleManager,
     input: InputState,
     assets: Box<Assets>,
     score: f32,
@@ -33,7 +33,7 @@ impl MainState {
         let mov_vec = vec![ground1, ground2];
 
         let cactus_tags = AssetTag::cactus_tags();
-        let mut cactus_manager = CactusManager::with_capacity(cactus_tags.len(), CACTUS_MIN_DELAY, mov_vec);
+        let mut cactus_manager = ObstacleManager::with_capacity(cactus_tags.len(), CACTUS_MIN_DELAY, mov_vec);
         for _ in 0..cactus_tags.len() {
             let cactus = ecs.new_entity();
             cactus_manager.add_cactus(cactus);

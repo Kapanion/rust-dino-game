@@ -1,7 +1,7 @@
 pub mod macros;
 pub mod types_and_constants;
 pub mod components;
-pub mod cactus;
+pub mod obstacles;
 pub mod input;
 pub mod assets;
 pub mod ecs;
@@ -21,7 +21,7 @@ pub mod prelude{
     pub use crate::{
         *,
         assets::*,
-        cactus::*,
+        obstacles::*,
         components::*,
         ecs::*,
         input::*,
