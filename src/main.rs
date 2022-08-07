@@ -3,10 +3,11 @@ use dino_game::prelude::*;
 use std::io::Write;
 
 struct EntityIds{
-    dino: usize,
-    ground1: usize,
-    ground2: usize,
-    cloud: usize,
+    dino:       usize,
+    ground1:    usize,
+    ground2:    usize,
+    cloud:      usize,
+    ptero:      usize,
 }
 
 struct MainState {
@@ -38,6 +39,9 @@ impl MainState {
             cactus_manager.add_cactus(cactus);
         }
 
+        let ptero = ecs.new_entity();
+        cactus_manager.add_ptero(ptero);
+
         let dino = ecs.new_entity();
 
         let s = MainState{
@@ -47,6 +51,7 @@ impl MainState {
                 ground1,
                 ground2,
                 cloud,
+                ptero,
             },
             cactus_manager,
             input: InputState::new(),
@@ -58,7 +63,7 @@ impl MainState {
     fn start(&mut self, _ctx: &mut Context) {
         // DINO
         let mut dino_movable = Movable::new(
-            v2!(-400.0, 0.0),
+            v2!(-400.0, GROUND_Y_COORD + 43.),
             v2!(0.0, 0.0),
             v2!(0.0, DINO_GRAVITY),
         );
@@ -66,7 +71,7 @@ impl MainState {
         let dino_collider_body = BoxCollider::new(v2!(14., 25.)).with_offset(v2!(-6., -18.));
         let dino_collider_head = BoxCollider::new(v2!(22., 17.)).with_offset(v2!(18., 32.));
         let dino_collider = Collider::new_double(dino_collider_body, dino_collider_head);
-        let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun, 4);
+        let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun);
         let dino_state_machine = AnimStateMachine::new(&mut self.assets, AssetTag::DinoStateMachine, DinoState::Run);
 
         self.ecs.add_component(self.ent.dino, dino_movable);
@@ -76,6 +81,19 @@ impl MainState {
         self.ecs.add_component(self.ent.dino, DinoState::Run);
         self.ecs.add_component(self.ent.dino, dino_state_machine);
         // self.components.add_component(dino, CircleGraphic::new(47.0));
+
+        // PTERO
+        let img = self.assets.get_image(AssetTag::Ptero1).unwrap();
+        let ptero_wid = img.width() as f32;
+        let ptero_col = Collider::new_single(BoxCollider::new(v2!(ptero_wid/2., 20.)).with_offset(v2!(0., 4.)));
+        let ptero_scr = EndlessScroll::new(ptero_wid);
+        let ptero_mov = Movable::new(v2!(SCREEN.0 + 50., GROUND_Y_COORD + 40.), v2!(-30.,0.), v2!());
+        let ptero_anim = Animation::new(&self.assets, AssetTag::PteroAnim);
+
+        self.ecs.add_component(self.ent.ptero, ptero_mov);
+        self.ecs.add_component(self.ent.ptero, ptero_col);
+        self.ecs.add_component(self.ent.ptero, ptero_anim);
+        self.ecs.add_component(self.ent.ptero, ptero_scr);
 
         // CACTUS
         let cactus_tags = AssetTag::cactus_tags();
@@ -148,28 +166,16 @@ impl MainState {
         self.score = 0.;
 
         // DINO
-        let mut dino_movable = Movable::new(
-            v2!(-400.0, GROUND_Y_COORD),
-            v2!(0.0, 0.0),
-            v2!(0.0, DINO_GRAVITY),
-        );
-        dino_movable.ground_check_on();
+        let mut dino_movable = self.ecs.get_component::<Movable>(self.ent.dino).unwrap();
+        dino_movable.pos.y = GROUND_Y_COORD + 43.;
         self.ecs.set_component(self.ent.dino, dino_movable);
         self.ecs.set_component(self.ent.dino, DinoState::Run);
 
         // CACTUS
-        let cactus_tags = AssetTag::cactus_tags();
-        for i in 0..cactus_tags.len() {
-            let cactus = self.cactus_manager.id(i);
-            let img = self.assets.get_image(cactus_tags[i]).unwrap();
-            self.ecs.set_component(
-                cactus,
-                Movable::new(
-                    v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + img.height() as f32 / 2.0),
-                    v2!(-START_SCROLL_SPEED, 0.0),
-                    Vec2::ZERO,
-                )
-            );
+        for id in self.cactus_manager.ids() {
+            let mut mov = self.ecs.get_component::<Movable>(id).unwrap();
+            mov.pos.x = SCREEN.0 + 50.;
+            self.ecs.set_component(id, mov);
         }
         self.cactus_manager.restart();
 
@@ -197,9 +203,6 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             // EVERYTHING ELSE
             self.score += dt * 10.;
-            // let score = self.score as u32;
-            // print!("\rScore: {}", score);
-            // std::io::stdout().flush().unwrap();
 
             self.cactus_manager.update(&mut self.ecs, time, dt);
 
@@ -209,7 +212,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 EndlessScroll:                      self.ent.ground1, self.ent.ground2, self.ent.cloud;
                 Movable:                            self.ent.dino, self.ent.ground1, self.ent.ground2, self.ent.cloud;
                 AnimStateMachine::<DinoState>:      self.ent.dino;
-                Animation:                          self.ent.dino;
+                Animation:                          self.ent.dino, self.ent.ptero;
             };
 
 
@@ -222,8 +225,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
                     AnimStateMachine::<DinoState>:      self.ent.dino;
                     Animation:                          self.ent.dino;
                 };
-                self.input.game_over();
                 self.draw(ctx)?;
+                self.input.game_over();
                 // let _ = event::quit(ctx);
             }
         }
@@ -231,6 +234,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
     }
     
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        if self.input.pause() || !self.input.game_active() {return Ok(())}
+
         const RGB_VAL: f32 = 247. / 255.;
         graphics::clear(ctx, Color::new(RGB_VAL, RGB_VAL, RGB_VAL, 1.0));
 
@@ -245,9 +250,11 @@ impl event::EventHandler<ggez::GameError> for MainState {
         }
 
         // Draw colliders:
-        // for (col, movable) in iter_zip!(self.ecs, Collider, Movable) {
-        //     col.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
-        // }
+        if SHOW_COLLIDERS {
+            for (col, movable) in iter_zip!(self.ecs, Collider, Movable) {
+                col.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
+            }
+        }
 
         // Draw debug circles:
         // for (circle_graphic, movable) in iter_zip!(self.components, CircleGraphic, Movable) {
@@ -257,7 +264,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         // Drawing text:
         let score_str = format!("Score: {}", self.score as u32);
         let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
-        //TODO adjust color:
+        // TODO adjust color:
         graphics::draw(ctx, &score_display, (v2!(10., 10.), 0.0, Color::new(0.3, 0.3, 0.3, 1.0)))?;
 
         graphics::present(ctx)?;

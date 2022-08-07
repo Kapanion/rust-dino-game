@@ -5,6 +5,7 @@ use collision::BoundType;
 struct CactusEntry{
     id: usize,
     active: bool,
+    additional_speed: f32,
 }
 
 impl CactusEntry{
@@ -12,7 +13,11 @@ impl CactusEntry{
         CactusEntry{
             id,
             active: false,
+            additional_speed: 0.,
         }
+    }
+    fn set_additional_speed(&mut self, new_speed: f32){
+        self.additional_speed = new_speed;
     }
 }
 
@@ -38,6 +43,12 @@ impl CactusPool{
 
     fn add_cactus(&mut self, id: usize){
         self.cacti.push(CactusEntry::new(id));
+    }
+
+    fn add_ptero(&mut self, id: usize){
+        let mut entry = CactusEntry::new(id);
+        entry.set_additional_speed(PTERO_SPEED);
+        self.cacti.push(entry);
     }
 
     fn activate_next(&mut self) -> Option<usize>{
@@ -100,6 +111,9 @@ impl CactusManager{
     pub fn add_cactus(&mut self, id: usize){
         self.pool.add_cactus(id);
     }
+    pub fn add_ptero(&mut self, id: usize){
+        self.pool.add_ptero(id);
+    }
     pub fn deactivate_all(&mut self){
         self.pool.deactivate_all();
     }
@@ -124,7 +138,7 @@ impl CactusManager{
         self.next_spawn_time = time + self.delay + self.rng.rand_float() * 1.3;
     }
     fn update_movables_speed(&self, ecs: &mut ECS, new_vel: f32){
-        if self.scroll_speed == MAX_SCROLL_SPEED {return}
+        if self.scroll_speed >= MAX_SCROLL_SPEED {return}
         for id in self.movable_ids.iter() {
             let mut mov = ecs.get_component::<Movable>(*id).unwrap();
             mov.velocity.x = -new_vel;
@@ -133,7 +147,7 @@ impl CactusManager{
         for entry in self.pool.cacti.iter() {
             let id = entry.id;
             let mut mov = ecs.get_component::<Movable>(id).unwrap();
-            mov.velocity.x = -new_vel;
+            mov.velocity.x = -(new_vel + entry.additional_speed);
             ecs.set_component(id, mov);
         }
     }

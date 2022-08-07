@@ -14,16 +14,20 @@ pub struct Assets{
     pub cactus_big_2:   Image,
     pub cactus_big_3:   Image,
     pub cloud:          Image,
-    pub ground1:        Image,
-    pub ground2:        Image,
+    pub ground_1:       Image,
+    pub ground_2:       Image,
+    pub ptero_1:        Image,
+    pub ptero_2:        Image,
     pub dino_anim_run:  Anim,
     pub dino_anim_idle: Anim,
     pub dino_anim_dead: Anim,
+    pub ptero_anim:     Anim,
     pub font:           graphics::Font,
 }
 
 impl Assets{
     pub fn new(ctx: &mut Context) -> Box<Assets> {
+        // DINO
         let dino_run_l = Image::new(ctx, "/dino_run_l.png").unwrap();
         let dino_run_r = Image::new(ctx, "/dino_run_r.png").unwrap();
         let dino_anim_run = (vec![
@@ -36,6 +40,16 @@ impl Assets{
         let dino_anim_dead = (vec![
             Sprite::new(AssetTag::DinoDead),
         ], 1);
+
+        // PTERO
+        let ptero_1 = Image::new(ctx, "/ptero_1.png"  ).unwrap();
+        let ptero_2 = Image::new(ctx, "/ptero_2.png"  ).unwrap();
+        let ptero_anim = (vec![
+            Sprite::new(AssetTag::Ptero1),
+            Sprite::new(AssetTag::Ptero2),
+        ], 4);
+
+        // OTHER
         let font = graphics::Font::new(ctx, "/PressStart2P-Regular.ttf").unwrap();
         Box::new(
             Assets{
@@ -50,11 +64,14 @@ impl Assets{
                 cactus_big_2:   Image::new(ctx, "/cactus_big_2.png"  ).unwrap(),
                 cactus_big_3:   Image::new(ctx, "/cactus_big_3.png"  ).unwrap(),
                 cloud:          Image::new(ctx, "/cloud.png"     ).unwrap(),
-                ground1:        Image::new(ctx, "/ground_1.png"  ).unwrap(),
-                ground2:        Image::new(ctx, "/ground_2.png"  ).unwrap(),
+                ground_1:       Image::new(ctx, "/ground_1.png"  ).unwrap(),
+                ground_2:       Image::new(ctx, "/ground_2.png"  ).unwrap(),
+                ptero_1,
+                ptero_2,
                 dino_anim_run,
                 dino_anim_idle,
                 dino_anim_dead,
+                ptero_anim,
                 font,
             }
         )
@@ -65,8 +82,8 @@ impl Assets{
             AssetTag::DinoRunR      => Some(&self.dino_run_r),
             AssetTag::DinoDead      => Some(&self.dino_dead),
             AssetTag::DinoIdle      => Some(&self.dino_idle),
-            AssetTag::Ground1       => Some(&self.ground1),
-            AssetTag::Ground2       => Some(&self.ground2),
+            AssetTag::Ground1       => Some(&self.ground_1),
+            AssetTag::Ground2       => Some(&self.ground_2),
             AssetTag::Cloud         => Some(&self.cloud),
             AssetTag::CactusSmall1  => Some(&self.cactus_small_1),
             AssetTag::CactusSmall2  => Some(&self.cactus_small_2),
@@ -74,6 +91,8 @@ impl Assets{
             AssetTag::CactusBig1    => Some(&self.cactus_big_1),
             AssetTag::CactusBig2    => Some(&self.cactus_big_2),
             AssetTag::CactusBig3    => Some(&self.cactus_big_3),
+            AssetTag::Ptero1        => Some(&self.ptero_1),
+            AssetTag::Ptero2        => Some(&self.ptero_2),
             _ => None
         }
     }
@@ -89,6 +108,7 @@ impl Assets{
             AssetTag::DinoAnimRun   => Some(&self.dino_anim_run),
             AssetTag::DinoAnimJump  => Some(&self.dino_anim_idle),
             AssetTag::DinoAnimDead  => Some(&self.dino_anim_dead),
+            AssetTag::PteroAnim     => Some(&self.ptero_anim),
             _ => None
         }
     }
@@ -131,6 +151,8 @@ pub enum AssetTag{
     CactusSmall1, CactusSmall2, CactusSmall3,
     CactusBig1, CactusBig2, CactusBig3,
     Ground1, Ground2,
+    Ptero1, Ptero2,
+    PteroAnim,
     Cloud,
 }
 

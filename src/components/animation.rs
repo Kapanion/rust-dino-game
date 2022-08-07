@@ -11,7 +11,9 @@ pub struct Animation{
 }
 
 impl Animation {
-    pub fn new(assets: &Assets, asset_tag: AssetTag, fps: u8) -> Animation {
+    pub fn new(assets: &Assets, asset_tag: AssetTag) -> Animation {
+        let fps = assets.get_anim_fps(asset_tag).unwrap();
+        println!("{:?}: {fps}", asset_tag);
         Animation{
             asset_tag,
             len: assets.get_anim_length(asset_tag).unwrap(),
@@ -53,12 +55,11 @@ pub struct AnimStateMachine<State: 'static + Copy + Clone + PartialEq>{
 impl<State: 'static + Copy + Clone + PartialEq> AnimStateMachine<State> {
     pub fn new(assets: &Assets, asset_tag: AssetTag, start_state: State) -> AnimStateMachine<State> {
         let current_anim_tag = assets.get_state_machine_anim(asset_tag, start_state).unwrap();
-        let fps = assets.get_anim_fps(current_anim_tag).unwrap();
         AnimStateMachine {
             asset_tag,
             current_state: start_state,
             current_anim_tag,
-            current_anim: Animation::new(assets, current_anim_tag, fps),
+            current_anim: Animation::new(assets, current_anim_tag),
         }
     }
     pub fn update_state(&mut self, ecs: &mut ECS, assets: &Assets, entity_id: usize) {
@@ -68,8 +69,7 @@ impl<State: 'static + Copy + Clone + PartialEq> AnimStateMachine<State> {
         if self.current_state == new_state { return }
         self.current_state = new_state;
         let anim_tag = assets.get_state_machine_anim(self.asset_tag, new_state).unwrap();
-        let anim_fps = assets.get_anim_fps(anim_tag).unwrap();
-        ecs.set_component::<Animation>(entity_id, Animation::new(assets, anim_tag, anim_fps));
+        ecs.set_component::<Animation>(entity_id, Animation::new(assets, anim_tag));
     }
 }
 
