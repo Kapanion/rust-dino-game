@@ -1,6 +1,8 @@
 use dino_game::prelude::*;
 
 use std::io::Write;
+use std::time::Duration;
+use ggez::conf::Conf;
 
 struct EntityIds{
     dino:       usize,
@@ -186,8 +188,6 @@ impl MainState {
 
 impl event::EventHandler<ggez::GameError> for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        const DESIRED_FPS: u32 = 60;
-
         while timer::check_update_time(ctx, DESIRED_FPS) {
             let dt = 1.0 / (DESIRED_FPS as f32);
             let time = timer::time_since_start(ctx).as_secs_f32();
@@ -215,7 +215,6 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 Animation:                          self.ent.dino, self.ent.ptero;
             };
 
-
             // Losing the game
             if self.cactus_manager.check_collision(&mut self.ecs, self.ent.dino) {
                 println!("\nGame over!");
@@ -234,7 +233,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
     }
     
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        if self.input.pause() || !self.input.game_active() {return Ok(())}
+        if self.input.pause() || !self.input.game_active() {
+            timer::sleep(Duration::new(0, 1_000_000_000 / DESIRED_FPS));
+            return Ok(());
+        }
 
         const RGB_VAL: f32 = 247. / 255.;
         graphics::clear(ctx, Color::new(RGB_VAL, RGB_VAL, RGB_VAL, 1.0));
@@ -269,6 +271,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         graphics::present(ctx)?;
 
+        timer::yield_now();
         Ok(())
     }
 
@@ -313,7 +316,8 @@ pub fn main() -> GameResult {
     let (w,h) = SCREEN;
 
     let cb = ggez::ContextBuilder::new("dino game", "Kapanion")
-        .window_setup(conf::WindowSetup::default().title("Dino Game"))        
+        .default_conf(Conf::new())
+        .window_setup(conf::WindowSetup::default().title("Dino Game"))
         .window_mode(conf::WindowMode::default().dimensions(w, h))
         .add_resource_path(resource_dir);
 

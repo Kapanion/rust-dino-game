@@ -12,5 +12,6 @@ pub const SHOW_COLLIDERS    : bool = true;
 pub const NUM_OF_COLLIDERS  : usize = 2;
 
 pub const SCREEN: Screen2 = (1200.0, 600.0);
+pub const DESIRED_FPS: u32 = 60;
 
 pub const RNG_SEED: u64 = 69420;
