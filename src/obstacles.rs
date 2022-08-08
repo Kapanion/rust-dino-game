@@ -23,22 +23,26 @@ impl ObstacleEntry {
 
 struct ObstaclePool {
     obstacles: Vec<ObstacleEntry>,
-    rng: oorandom::Rand32,
+    rng: Rand32,
 }
 
 impl ObstaclePool {
     fn new() -> ObstaclePool {
         ObstaclePool {
             obstacles: Vec::new(),
-            rng: oorandom::Rand32::new(RNG_SEED),
+            rng: Rand32::new(RNG_DEFAULT_SEED),
         }
     }
 
     fn with_capacity(capacity: usize) -> ObstaclePool {
         ObstaclePool {
             obstacles: Vec::with_capacity(capacity),
-            rng: oorandom::Rand32::new(RNG_SEED),
+            rng: Rand32::new(RNG_DEFAULT_SEED),
         }
+    }
+
+    fn set_rng(&mut self, seed: u64){
+        self.rng = Rand32::new(seed);
     }
 
     fn add_cactus(&mut self, id: usize){
@@ -82,7 +86,7 @@ pub struct ObstacleManager {
     pool: ObstaclePool,
     delay: f32,
     next_spawn_time: f32,
-    rng: oorandom::Rand32,
+    rng: Rand32,
     movable_ids: Box<Vec<usize>>,
     scroll_speed: f32,
 }
@@ -93,7 +97,7 @@ impl ObstacleManager {
             pool: ObstaclePool::new(),
             delay,
             next_spawn_time: 0.0,
-            rng: oorandom::Rand32::new(RNG_SEED),
+            rng: Rand32::new(RNG_DEFAULT_SEED),
             movable_ids: Box::new(movable_ids),
             scroll_speed: START_SCROLL_SPEED,
         }
@@ -103,10 +107,14 @@ impl ObstacleManager {
             pool: ObstaclePool::with_capacity(capacity),
             delay,
             next_spawn_time: 0.0,
-            rng: oorandom::Rand32::new(69420),
+            rng: Rand32::new(RNG_DEFAULT_SEED),
             movable_ids: Box::new(movable_ids),
             scroll_speed: START_SCROLL_SPEED,
         }
+    }
+    pub fn set_rng(&mut self, seed: u64){
+        self.pool.set_rng(seed);
+        self.rng = Rand32::new(seed);
     }
     pub fn add_cactus(&mut self, id: usize){
         self.pool.add_cactus(id);

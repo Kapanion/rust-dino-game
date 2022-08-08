@@ -16,7 +16,7 @@ pub mod prelude{
         graphics::{self, Color, Image}, timer,
     };
 
-    pub use oorandom;
+    pub use oorandom::Rand32;
 
     pub use crate::{
         *,
@@ -50,3 +50,12 @@ pub fn world_to_screen_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
 //     let screen_size_h = (screen_size.0 / 2.0, screen_size.1 / 2.0);
 //     BoxCollider::box_bound_offs(Vec2::from(screen_size_h), bound)
 // }
+
+pub fn get_time() -> u64{
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let start = SystemTime::now();
+    let since_the_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+    since_the_epoch.as_secs()
+}

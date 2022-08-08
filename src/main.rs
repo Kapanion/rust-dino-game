@@ -15,7 +15,7 @@ struct EntityIds{
 struct MainState {
     ecs: ECS,
     ent: EntityIds,
-    cactus_manager: ObstacleManager,
+    obstacle_manager: ObstacleManager,
     input: InputState,
     assets: Box<Assets>,
     score: f32,
@@ -35,14 +35,15 @@ impl MainState {
         let mov_vec = vec![ground1, ground2];
 
         let cactus_tags = AssetTag::cactus_tags();
-        let mut cactus_manager = ObstacleManager::with_capacity(cactus_tags.len(), CACTUS_MIN_DELAY, mov_vec);
+        let mut obstacle_manager = ObstacleManager::with_capacity(cactus_tags.len(), CACTUS_MIN_DELAY, mov_vec);
         for _ in 0..cactus_tags.len() {
             let cactus = ecs.new_entity();
-            cactus_manager.add_cactus(cactus);
+            obstacle_manager.add_cactus(cactus);
         }
+        obstacle_manager.set_rng(get_time());
 
         let ptero = ecs.new_entity();
-        cactus_manager.add_ptero(ptero);
+        obstacle_manager.add_ptero(ptero);
 
         let dino = ecs.new_entity();
 
@@ -55,7 +56,7 @@ impl MainState {
                 cloud,
                 ptero,
             },
-            cactus_manager,
+            obstacle_manager,
             input: InputState::new(),
             assets,
             score: 0.,
@@ -100,7 +101,7 @@ impl MainState {
         // CACTUS
         let cactus_tags = AssetTag::cactus_tags();
         for i in 0..cactus_tags.len() {
-            let cactus = self.cactus_manager.id(i);
+            let cactus = self.obstacle_manager.id(i);
             let img = self.assets.get_image(cactus_tags[i]).unwrap();
             // Some math for calculating cactus colliders
             let mut hs = v2!(img.width() as f32 / 2.0, img.height() as f32 / 2.0);
@@ -174,12 +175,12 @@ impl MainState {
         self.ecs.set_component(self.ent.dino, DinoState::Run);
 
         // CACTUS
-        for id in self.cactus_manager.ids() {
+        for id in self.obstacle_manager.ids() {
             let mut mov = self.ecs.get_component::<Movable>(id).unwrap();
             mov.pos.x = SCREEN.0 + 50.;
             self.ecs.set_component(id, mov);
         }
-        self.cactus_manager.restart();
+        self.obstacle_manager.restart();
 
         self.input = InputState::new();
     }
@@ -204,7 +205,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             // EVERYTHING ELSE
             self.score += dt * 10.;
 
-            self.cactus_manager.update(&mut self.ecs, time, dt);
+            self.obstacle_manager.update(&mut self.ecs, time, dt);
 
             update! {
                 [&mut self.ecs, &self.assets, time, dt]
@@ -216,7 +217,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             };
 
             // Losing the game
-            if self.cactus_manager.check_collision(&mut self.ecs, self.ent.dino) {
+            if self.obstacle_manager.check_collision(&mut self.ecs, self.ent.dino) {
                 println!("\nGame over!");
                 self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
                 update! {
