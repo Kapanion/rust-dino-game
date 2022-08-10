@@ -29,7 +29,10 @@ pub mod prelude{
     };
 }
 
+use std::io::{Read, Write};
+use std::path;
 use prelude::*;
+use ggez::{conf, filesystem, ContextBuilder, GameResult};
 
 pub trait Draw{
     fn draw(&self, ctx: &mut Context, ecs: &ECS, assets: &Assets, entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult;
@@ -58,4 +61,24 @@ pub fn get_time() -> u64{
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     since_the_epoch.as_secs()
+}
+
+// File stuff
+pub fn read_high_score_data(ctx: &mut Context) -> u32 {
+    let file_path = path::Path::new("/high_score.txt");
+    if !filesystem::is_file(ctx, file_path){
+        return 0;
+    }
+    let mut buffer = Vec::new();
+    let mut file = filesystem::open(ctx, file_path).unwrap();
+    file.read_to_end(&mut buffer).unwrap();
+    String::from_utf8_lossy(&buffer).parse().unwrap()
+}
+
+pub fn write_high_score_data(ctx: &mut Context, high_score: u32) {
+    let file_path = path::Path::new("/high_score.txt");
+    let score_str = high_score.to_string();
+    let bytes = score_str.as_bytes();
+    let mut file = filesystem::create(ctx, file_path).unwrap();
+    file.write_all(bytes).unwrap();
 }

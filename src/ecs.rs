@@ -1,3 +1,5 @@
+// Inspired by Ian Kettlewell's blog post: https://ianjk.com/ecs-in-rust/
+
 use crate::prelude::*;
 
 trait ComponentVec {

@@ -19,6 +19,7 @@ struct MainState {
     input: InputState,
     assets: Box<Assets>,
     score: f32,
+    pub high_score: u32,
 }
 
 impl MainState {
@@ -47,6 +48,8 @@ impl MainState {
 
         let dino = ecs.new_entity();
 
+        let high_score = read_high_score_data(ctx);
+
         let s = MainState{
             ecs,
             ent: EntityIds{
@@ -60,6 +63,7 @@ impl MainState {
             input: InputState::new(),
             assets,
             score: 0.,
+            high_score,
         };
         Ok(s)
     }
@@ -225,6 +229,14 @@ impl event::EventHandler<ggez::GameError> for MainState {
                     AnimStateMachine::<DinoState>:      self.ent.dino;
                     Animation:                          self.ent.dino;
                 };
+
+                // HIGH SCORE
+                let score = self.score as u32;
+                if self.high_score < score {
+                    self.high_score = score;
+                    write_high_score_data(ctx, score);
+                }
+
                 self.draw(ctx)?;
                 self.input.game_over();
                 // let _ = event::quit(ctx);
@@ -265,10 +277,17 @@ impl event::EventHandler<ggez::GameError> for MainState {
         // }
 
         // Drawing text:
-        let score_str = format!("Score: {}", self.score as u32);
+        let score_str = format!("HI {:0>5} {:0>5}", self.high_score, self.score as u32);
         let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
         // TODO adjust color:
-        graphics::draw(ctx, &score_display, (v2!(10., 10.), 0.0, Color::new(0.3, 0.3, 0.3, 1.0)))?;
+        let text_width = score_display.width(ctx);
+        graphics::draw(ctx,&score_display,
+            (
+               v2!(SCREEN.0 - text_width - 15., 15.),
+               0.0,
+               Color::new(0.3, 0.3, 0.3, 1.0)
+            )
+        )?;
 
         graphics::present(ctx)?;
 
