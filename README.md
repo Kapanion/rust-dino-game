@@ -6,7 +6,7 @@ Chrome's Dino game made with **Rust** and `ggez` crate.
 
 ## How to Run
 
-If you have Windows, you can download the build from [itch.io](https://kapanion.itch.io/rust-dino-game).
+You can download the built game from **[itch.io](https://kapanion.itch.io/rust-dino-game)**.
 
 You can also compile the source code yourself. For that, you must have `cargo` installed. Open the base directory and run the following command:
 ```
