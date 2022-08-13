@@ -59,11 +59,6 @@ pub fn screen_to_world_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
     v2!(x, y)
 }
 
-// fn screen_bound(screen_size: Screen2, bound: BoundType) -> Vec2{
-//     let screen_size_h = (screen_size.0 / 2.0, screen_size.1 / 2.0);
-//     BoxCollider::box_bound_offs(Vec2::from(screen_size_h), bound)
-// }
-
 pub fn get_time() -> u64{
     use std::time::{SystemTime, UNIX_EPOCH};
     let start = SystemTime::now();

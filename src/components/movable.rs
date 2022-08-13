@@ -60,7 +60,7 @@ impl Movable{
 }
 
 impl Update for Movable{
-    fn update(ecs: &mut ECS, assets: &Assets, rng: &mut Rand32, entity_id: usize, time: f32, dt: f32) {
+    fn update(ecs: &mut ECS, _assets: &Assets, _rng: &mut Rand32, entity_id: usize, _time: f32, dt: f32) {
         Movable::update_pos(ecs, entity_id, dt);
     }
 }
@@ -79,7 +79,7 @@ impl EndlessScroll{
 }
 
 impl Update for EndlessScroll{
-    fn update(ecs: &mut ECS, assets: &Assets, rng: &mut Rand32, entity_id: usize, time: f32, dt: f32) {
+    fn update(ecs: &mut ECS, _assets: &Assets, _rng: &mut Rand32, entity_id: usize, _time: f32, _dt: f32) {
         let mut mov = ecs.get_component::<Movable>(entity_id).unwrap();
         let scroll = ecs.get_component::<EndlessScroll>(entity_id).unwrap();
         if mov.pos.x + scroll.width / 2.0 < -SCREEN.0 / 2.0 {

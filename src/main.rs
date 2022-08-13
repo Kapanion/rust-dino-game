@@ -321,13 +321,13 @@ impl event::EventHandler<ggez::GameError> for MainState {
         // Drawing text:
         let score_str = format!("HI {:0>5} {:0>5}", self.score.high, self.score.cur as u32);
         let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
-        // TODO adjust color:
         let text_width = score_display.width(ctx);
+        const COL: f32 = 83. / 255.;
         graphics::draw(ctx,&score_display,
             (
                v2!(SCREEN.0 - text_width - 15., 15.),
                0.0,
-               Color::new(0.3, 0.3, 0.3, 1.0)
+               Color::new(COL, COL, COL, 1.0)
             )
         )?;
 
