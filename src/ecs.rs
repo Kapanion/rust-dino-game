@@ -1,7 +1,5 @@
 // Inspired by Ian Kettlewell's blog post: https://ianjk.com/ecs-in-rust/
 
-use crate::prelude::*;
-
 trait ComponentVec {
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;

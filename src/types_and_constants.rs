@@ -8,8 +8,9 @@ pub const MAX_SCROLL_SPEED  : f32 =  2100.0;
 pub const CACTUS_MIN_DELAY  : f32 =     0.7;
 pub const PTERO_SPEED       : f32 =   100.0;
 
-pub const SHOW_COLLIDERS    : bool = false;
 pub const NUM_OF_COLLIDERS  : usize = 2;
+pub const SHOW_COLLIDERS    : bool = false;
+pub const PAUSE_ENABLED     : bool = false;
 
 pub const SCREEN: Screen2 = (1200.0, 600.0);
 pub const DESIRED_FPS: u32 = 60;

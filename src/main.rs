@@ -1,12 +1,10 @@
-extern crate core;
+#![windows_subsystem = "windows"]
 
 use dino_game::prelude::*;
 
-use std::io::Write;
 use std::time::Duration;
 use ggez::conf::Conf;
-use ggez::event::{Axis, Button, ErrorOrigin, GamepadId, MouseButton};
-use ggez::GameError;
+use ggez::event::MouseButton;
 
 struct EntityIds{
     dino:       usize,
@@ -140,7 +138,7 @@ impl MainState {
             let mut hs = v2!(img.width() as f32 / 2.0 - pad, img.height() as f32 / 2.0);
             hs.y -= 2.;
             let col_high = BoxCollider::new(hs);
-            let mut offset_y =
+            let offset_y =
                 if img.height() == 100{ // big cactus
                     if img.width() > 100 {-2.}
                     else {-4.}
@@ -179,7 +177,7 @@ impl MainState {
         self.ecs.add_component(self.ent.ground2, ground_scr);
 
         // CLOUD
-        let mut cloud_mov = Movable::new(
+        let cloud_mov = Movable::new(
             v2!(0., 200.),
             v2!(-START_SCROLL_SPEED / 2.0, 0.),
             v2!(0., 0.)
@@ -257,7 +255,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
             // Losing the game
             if self.obstacle_manager.check_collision(&mut self.ecs, self.ent.dino) {
-                println!("\nGame over!");
+                // println!("\nGame over!");
                 let _ = self.assets.get_audio_mut(AssetTag::DeathSound).unwrap().play(ctx);
 
                 self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
@@ -367,7 +365,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 self.input.jump_end();
             }
             KeyCode::Q => {
-                self.input.toggle_pause();
+                if PAUSE_ENABLED{
+                    self.input.toggle_pause();
+                }
             }
             _ => (),
         }
@@ -388,7 +388,7 @@ pub fn main() -> GameResult {
 
     let cb = ggez::ContextBuilder::new("dino game", "Kapanion")
         .default_conf(Conf::new())
-        .window_setup(conf::WindowSetup::default().title("Dino Game"))
+        .window_setup(conf::WindowSetup::default().icon("/images/dino_idle.png").title("Dino Game"))
         .window_mode(conf::WindowMode::default().dimensions(w, h))
         .add_resource_path(resource_dir);
 

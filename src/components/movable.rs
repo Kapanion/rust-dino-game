@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use collision::BoundType;
-use crate::KeyCode::End;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Movable{

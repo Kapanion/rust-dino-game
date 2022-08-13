@@ -79,7 +79,6 @@ pub struct ObstacleManager {
     pool: ObstaclePool,
     delay: f32,
     next_spawn_time: f32,
-    rng: Rand32,
     movable_ids: Box<Vec<usize>>,
     scroll_speed: f32,
 }
@@ -90,7 +89,6 @@ impl ObstacleManager {
             pool: ObstaclePool::new(),
             delay,
             next_spawn_time: 0.0,
-            rng: Rand32::new(RNG_DEFAULT_SEED),
             movable_ids: Box::new(movable_ids),
             scroll_speed: START_SCROLL_SPEED,
         }
@@ -100,7 +98,6 @@ impl ObstacleManager {
             pool: ObstaclePool::with_capacity(capacity),
             delay,
             next_spawn_time: 0.0,
-            rng: Rand32::new(RNG_DEFAULT_SEED),
             movable_ids: Box::new(movable_ids),
             scroll_speed: START_SCROLL_SPEED,
         }

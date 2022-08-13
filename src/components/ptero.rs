@@ -16,7 +16,7 @@ impl Ptero{
 
 impl Update for Ptero{
     fn update(ecs: &mut ECS, _assets: &Assets, rng: &mut Rand32, entity_id: usize, _time: f32, _dt: f32) {
-        let mut rightmost_x = ecs.get_component::<Collider>(entity_id).unwrap().get_bound(ecs, entity_id, BoundType::Right).x;
+        let rightmost_x = ecs.get_component::<Collider>(entity_id).unwrap().get_bound(ecs, entity_id, BoundType::Right).x;
         let mut ptero = ecs.get_component::<Ptero>(entity_id).unwrap();
         if rightmost_x > - SCREEN.0 / 2.{
             if !ptero.needs_update {
