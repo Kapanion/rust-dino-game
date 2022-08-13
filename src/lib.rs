@@ -43,7 +43,7 @@ pub trait Draw{
 }
 
 pub trait Update{
-    fn update(ecs: &mut ECS, assets: &Assets, entity_id: usize, time: f32, dt: f32);
+    fn update(ecs: &mut ECS, assets: &Assets, rng: &mut Rand32, entity_id: usize, time: f32, dt: f32);
 }
 
 // World and screen positions

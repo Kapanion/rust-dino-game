@@ -28,6 +28,7 @@ struct MainState {
     obstacle_manager: ObstacleManager,
     input: InputState,
     assets: Box<Assets>,
+    rng: Rand32,
     restart_button: UIButton,
     pub score: Score,
     lose_time: f32,
@@ -52,7 +53,6 @@ impl MainState {
             let cactus = ecs.new_entity();
             obstacle_manager.add_cactus(cactus);
         }
-        obstacle_manager.set_rng(get_time());
 
         let ptero = ecs.new_entity();
         obstacle_manager.add_ptero(ptero);
@@ -63,6 +63,8 @@ impl MainState {
 
         let mut restart_button = UIButton::new(&assets, AssetTag::RestartButton, v2!());
         restart_button.deactivate();
+
+        let rng = Rand32::new(get_time());
 
         let s = MainState{
             ecs,
@@ -76,6 +78,7 @@ impl MainState {
             obstacle_manager,
             input: InputState::new(),
             assets,
+            rng,
             restart_button,
             score: Score{
                 cur: 0.,
@@ -111,7 +114,7 @@ impl MainState {
         // PTERO
         let img = self.assets.get_image(AssetTag::Ptero1).unwrap();
         let ptero_wid = img.width() as f32;
-        let ptero_col = Collider::new_single(BoxCollider::new(v2!(ptero_wid/2. - 15., 20.)).with_offset(v2!(0., 4.)));
+        let ptero_col = Collider::new_single(BoxCollider::new(v2!(ptero_wid/2. - 8., 20.)).with_offset(v2!(8., 4.)));
         let ptero_scr = EndlessScroll::new(ptero_wid);
         let ptero_mov = Movable::new(v2!(SCREEN.0 + 50., GROUND_Y_COORD + 40.), v2!(-30.,0.), v2!());
         let ptero_anim = Animation::new(&self.assets, AssetTag::PteroAnim);
@@ -120,6 +123,7 @@ impl MainState {
         self.ecs.add_component(self.ent.ptero, ptero_col);
         self.ecs.add_component(self.ent.ptero, ptero_anim);
         self.ecs.add_component(self.ent.ptero, ptero_scr);
+        self.ecs.add_component(self.ent.ptero, Ptero::new());
 
         // CACTUS
         let cactus_tags = AssetTag::cactus_tags();
@@ -239,13 +243,14 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 self.score.next_sound += 100.;
             }
 
-            self.obstacle_manager.update(&mut self.ecs, time, dt);
+            self.obstacle_manager.update(&mut self.ecs, &mut self.rng, time, dt);
 
             update! {
-                [&mut self.ecs, &self.assets, time, dt]
+                [&mut self.ecs, &self.assets, &mut self.rng, time, dt]
                 DinoController:                     self.ent.dino;
                 EndlessScroll:                      self.ent.ground1, self.ent.ground2, self.ent.cloud;
                 Movable:                            self.ent.dino, self.ent.ground1, self.ent.ground2, self.ent.cloud;
+                Ptero:                              self.ent.ptero;
                 AnimStateMachine::<DinoState>:      self.ent.dino;
                 Animation:                          self.ent.dino, self.ent.ptero;
             };
@@ -257,7 +262,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
                 self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
                 update! {
-                    [&mut self.ecs, &self.assets, time, dt]
+                    [&mut self.ecs, &self.assets, &mut self.rng, time, dt]
                     AnimStateMachine::<DinoState>:      self.ent.dino;
                     Animation:                          self.ent.dino;
                 };

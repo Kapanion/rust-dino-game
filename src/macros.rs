@@ -30,11 +30,11 @@ macro_rules! iter_zip_mut {
 
 #[macro_export]
 macro_rules! update {
-    { [$ecs: expr, $assets: expr, $time: expr, $dt: expr]
+    { [$ecs: expr, $assets: expr, $rng: expr, $time: expr, $dt: expr]
     $($t: ty: $($id: expr),*);*$(;)? } => {
         $(
             $(
-                <$t>::update($ecs, $assets, $id, $time, $dt);
+                <$t>::update($ecs, $assets, $rng, $id, $time, $dt);
             )*
         )*
     }
