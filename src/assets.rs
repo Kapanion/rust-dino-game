@@ -18,6 +18,7 @@ pub struct Assets{
     pub ground_2:       Image,
     pub ptero_1:        Image,
     pub ptero_2:        Image,
+    pub restart_button: Image,
     pub dino_anim_run:  Anim,
     pub dino_anim_idle: Anim,
     pub dino_anim_dead: Anim,
@@ -68,6 +69,7 @@ impl Assets{
                 ground_2:       Image::new(ctx, "/ground_2.png"  ).unwrap(),
                 ptero_1,
                 ptero_2,
+                restart_button: Image::new(ctx, "/restart_button.png"  ).unwrap(),
                 dino_anim_run,
                 dino_anim_idle,
                 dino_anim_dead,
@@ -93,6 +95,7 @@ impl Assets{
             AssetTag::CactusBig3    => Some(&self.cactus_big_3),
             AssetTag::Ptero1        => Some(&self.ptero_1),
             AssetTag::Ptero2        => Some(&self.ptero_2),
+            AssetTag::RestartButton => Some(&self.restart_button),
             _ => None
         }
     }
@@ -154,6 +157,7 @@ pub enum AssetTag{
     Ptero1, Ptero2,
     PteroAnim,
     Cloud,
+    RestartButton,
 }
 
 impl AssetTag{

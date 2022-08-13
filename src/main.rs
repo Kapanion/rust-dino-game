@@ -3,6 +3,8 @@ use dino_game::prelude::*;
 use std::io::Write;
 use std::time::Duration;
 use ggez::conf::Conf;
+use ggez::event::{Axis, Button, ErrorOrigin, GamepadId, MouseButton};
+use ggez::GameError;
 
 struct EntityIds{
     dino:       usize,
@@ -18,8 +20,10 @@ struct MainState {
     obstacle_manager: ObstacleManager,
     input: InputState,
     assets: Box<Assets>,
+    restart_button: UIButton,
     score: f32,
     pub high_score: u32,
+    lose_time: f32,
 }
 
 impl MainState {
@@ -50,6 +54,9 @@ impl MainState {
 
         let high_score = read_high_score_data(ctx);
 
+        let mut restart_button = UIButton::new(&assets, AssetTag::RestartButton, v2!());
+        restart_button.deactivate();
+
         let s = MainState{
             ecs,
             ent: EntityIds{
@@ -62,8 +69,10 @@ impl MainState {
             obstacle_manager,
             input: InputState::new(),
             assets,
+            restart_button,
             score: 0.,
             high_score,
+            lose_time: 0.,
         };
         Ok(s)
     }
@@ -169,7 +178,14 @@ impl MainState {
         self.ecs.add_component(self.ent.cloud, cloud_spr);
         self.ecs.add_component(self.ent.cloud, cloud_scr);
     }
-    fn restart(&mut self) {
+    fn restart(&mut self, ctx: &mut Context) {
+        self.input = InputState::new();
+
+        if  timer::time_since_start(ctx).as_secs_f32() < self.lose_time + 0.5{
+            self.input.game_over();
+            return
+        }
+
         self.score = 0.;
 
         // DINO
@@ -186,7 +202,7 @@ impl MainState {
         }
         self.obstacle_manager.restart();
 
-        self.input = InputState::new();
+        self.restart_button.deactivate();
     }
 }
 
@@ -201,7 +217,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             input::player_handle_input(&mut self.ecs, self.ent.dino, &mut self.input, dt);
 
             if self.input.restart() {
-                self.restart();
+                self.restart(ctx);
                 return Ok(());
             }
             if self.input.pause() || !self.input.game_active() {continue}
@@ -237,6 +253,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
                     write_high_score_data(ctx, score);
                 }
 
+                self.restart_button.activate();
+                self.lose_time = time;
+
                 self.draw(ctx)?;
                 self.input.game_over();
                 // let _ = event::quit(ctx);
@@ -263,6 +282,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
         for (anim, movable) in iter_zip!(self.ecs, Animation, Movable) {
             anim.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
         }
+
+        self.restart_button.draw(ctx, &self.ecs, &self.assets, 0, v2!(), SCREEN)?;
 
         // Draw colliders:
         if SHOW_COLLIDERS {
@@ -319,6 +340,16 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 self.input.toggle_pause();
             }
             _ => (),
+        }
+    }
+
+    fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+        let world_pos = screen_to_world_coords(SCREEN, v2!(x,y));
+        println!("{button:?} down at ({world_pos:?})");
+        if button == MouseButton::Left {
+            if self.restart_button.col.contains_point(self.restart_button.pos, world_pos) {
+                self.restart(ctx);
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ impl BoxCollider{
         new_collider
     }
 
-    fn contains_point(&self, pos: Vec2, point: Vec2) -> bool {
+    pub fn contains_point(&self, pos: Vec2, point: Vec2) -> bool {
         point.x >= pos.x - self.half_size.x &&
         point.x <= pos.x + self.half_size.x &&
         point.y >= pos.y - self.half_size.y &&

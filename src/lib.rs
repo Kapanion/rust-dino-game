@@ -5,6 +5,7 @@ pub mod obstacles;
 pub mod input;
 pub mod assets;
 pub mod ecs;
+pub mod ui;
 
 pub mod prelude{
     pub use glam::*;
@@ -26,6 +27,7 @@ pub mod prelude{
         ecs::*,
         input::*,
         types_and_constants::*,
+        ui::*,
     };
 }
 
@@ -46,6 +48,12 @@ pub trait Update{
 pub fn world_to_screen_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
     let x = point.x + screen_size.0 / 2.0;
     let y = screen_size.1 - (point.y + screen_size.1 / 2.0);
+    v2!(x, y)
+}
+
+pub fn screen_to_world_coords(screen_size: Screen2, point: Vec2) -> Vec2 {
+    let x = point.x - screen_size.0 / 2.0;
+    let y =  - (point.y - screen_size.1 / 2.0);
     v2!(x, y)
 }
 

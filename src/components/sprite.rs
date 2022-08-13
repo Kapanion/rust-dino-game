@@ -22,7 +22,7 @@ impl Sprite{
 }
 
 impl Draw for Sprite{
-    fn draw(&self, ctx: &mut Context, ecs: &ECS, assets: &Assets, entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult{
+    fn draw(&self, ctx: &mut Context, _ecs: &ECS, assets: &Assets, _entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult{
         let mut pos = world_to_screen_coords(screen_size, pos);
         // Floor the coordinates to prevent blurring
         pos.x = pos.x.floor();
