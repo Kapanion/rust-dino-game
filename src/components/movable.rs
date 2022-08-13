@@ -50,10 +50,12 @@ impl Movable{
         mov
     }
 
-    pub fn jump(&mut self, vel: f32) {
-        if !self.on_ground {return}
+    // returns whether the jump was successful
+    pub fn jump(&mut self, vel: f32) -> bool {
+        if !self.on_ground {return false}
         self.velocity.y = vel;
         self.on_ground = false;
+        true
     }
 }
 

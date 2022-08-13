@@ -1,3 +1,5 @@
+extern crate core;
+
 use dino_game::prelude::*;
 
 use std::io::Write;
@@ -14,6 +16,12 @@ struct EntityIds{
     ptero:      usize,
 }
 
+struct Score{
+    cur: f32,
+    pub high: u32,
+    next_sound: f32,
+}
+
 struct MainState {
     ecs: ECS,
     ent: EntityIds,
@@ -21,8 +29,7 @@ struct MainState {
     input: InputState,
     assets: Box<Assets>,
     restart_button: UIButton,
-    score: f32,
-    pub high_score: u32,
+    pub score: Score,
     lose_time: f32,
 }
 
@@ -70,8 +77,11 @@ impl MainState {
             input: InputState::new(),
             assets,
             restart_button,
-            score: 0.,
-            high_score,
+            score: Score{
+                cur: 0.,
+                high: high_score,
+                next_sound: 100.0
+            },
             lose_time: 0.,
         };
         Ok(s)
@@ -93,7 +103,7 @@ impl MainState {
         self.ecs.add_component(self.ent.dino, dino_movable);
         self.ecs.add_component(self.ent.dino, dino_collider);
         self.ecs.add_component(self.ent.dino, dino_anim);
-        self.ecs.add_component(self.ent.dino, DinoController::new(self.ent.dino));
+        self.ecs.add_component(self.ent.dino, DinoController::new(self.ent.dino, AssetTag::JumpSound));
         self.ecs.add_component(self.ent.dino, DinoState::Run);
         self.ecs.add_component(self.ent.dino, dino_state_machine);
         // self.components.add_component(dino, CircleGraphic::new(47.0));
@@ -101,7 +111,7 @@ impl MainState {
         // PTERO
         let img = self.assets.get_image(AssetTag::Ptero1).unwrap();
         let ptero_wid = img.width() as f32;
-        let ptero_col = Collider::new_single(BoxCollider::new(v2!(ptero_wid/2., 20.)).with_offset(v2!(0., 4.)));
+        let ptero_col = Collider::new_single(BoxCollider::new(v2!(ptero_wid/2. - 15., 20.)).with_offset(v2!(0., 4.)));
         let ptero_scr = EndlessScroll::new(ptero_wid);
         let ptero_mov = Movable::new(v2!(SCREEN.0 + 50., GROUND_Y_COORD + 40.), v2!(-30.,0.), v2!());
         let ptero_anim = Animation::new(&self.assets, AssetTag::PteroAnim);
@@ -181,12 +191,12 @@ impl MainState {
     fn restart(&mut self, ctx: &mut Context) {
         self.input = InputState::new();
 
-        if  timer::time_since_start(ctx).as_secs_f32() < self.lose_time + 0.5{
+        if  timer::time_since_start(ctx).as_secs_f32() < self.lose_time + 0.3{
             self.input.game_over();
             return
         }
 
-        self.score = 0.;
+        self.score.cur = 0.;
 
         // DINO
         let mut dino_movable = self.ecs.get_component::<Movable>(self.ent.dino).unwrap();
@@ -214,7 +224,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             let time = timer::time_since_start(ctx).as_secs_f32();
 
             // INPUT STUFF
-            input::player_handle_input(&mut self.ecs, self.ent.dino, &mut self.input, dt);
+            input::player_handle_input(ctx, &mut self.ecs, &mut self.assets, self.ent.dino, &mut self.input, dt);
 
             if self.input.restart() {
                 self.restart(ctx);
@@ -223,7 +233,11 @@ impl event::EventHandler<ggez::GameError> for MainState {
             if self.input.pause() || !self.input.game_active() {continue}
 
             // EVERYTHING ELSE
-            self.score += dt * 10.;
+            self.score.cur += dt * (10. + self.score.cur / 300.);
+            if self.score.cur >= self.score.next_sound {
+                let _ = self.assets.get_audio_mut(AssetTag::PointSound).unwrap().play(ctx);
+                self.score.next_sound += 100.;
+            }
 
             self.obstacle_manager.update(&mut self.ecs, time, dt);
 
@@ -239,6 +253,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
             // Losing the game
             if self.obstacle_manager.check_collision(&mut self.ecs, self.ent.dino) {
                 println!("\nGame over!");
+                let _ = self.assets.get_audio_mut(AssetTag::DeathSound).unwrap().play(ctx);
+
                 self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
                 update! {
                     [&mut self.ecs, &self.assets, time, dt]
@@ -247,9 +263,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 };
 
                 // HIGH SCORE
-                let score = self.score as u32;
-                if self.high_score < score {
-                    self.high_score = score;
+                let score = self.score.cur as u32;
+                if self.score.high < score {
+                    self.score.high = score;
                     write_high_score_data(ctx, score);
                 }
 
@@ -298,7 +314,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         // }
 
         // Drawing text:
-        let score_str = format!("HI {:0>5} {:0>5}", self.high_score, self.score as u32);
+        let score_str = format!("HI {:0>5} {:0>5}", self.score.high, self.score.cur as u32);
         let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
         // TODO adjust color:
         let text_width = score_display.width(ctx);
@@ -314,6 +330,15 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         timer::yield_now();
         Ok(())
+    }
+
+    fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+        let world_pos = screen_to_world_coords(SCREEN, v2!(x,y));
+        if button == MouseButton::Left {
+            if self.restart_button.col.contains_point(self.restart_button.pos, world_pos) {
+                self.restart(ctx);
+            }
+        }
     }
 
     fn key_down_event(
@@ -340,16 +365,6 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 self.input.toggle_pause();
             }
             _ => (),
-        }
-    }
-
-    fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
-        let world_pos = screen_to_world_coords(SCREEN, v2!(x,y));
-        println!("{button:?} down at ({world_pos:?})");
-        if button == MouseButton::Left {
-            if self.restart_button.col.contains_point(self.restart_button.pos, world_pos) {
-                self.restart(ctx);
-            }
         }
     }
 }

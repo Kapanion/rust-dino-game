@@ -8,18 +8,23 @@ pub enum DinoState{
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct DinoController {
     entity_id: usize,
+    jump_sound_tag: AssetTag,
 }
 
 impl DinoController {
-    pub fn new(entity_id: usize) -> DinoController {
+    pub fn new(entity_id: usize, jump_sound_tag: AssetTag) -> DinoController {
         DinoController {
             entity_id,
+            jump_sound_tag,
         }
     }
-    pub fn jump(&self, ecs: &mut ECS){
+    pub fn jump(&self, ctx: &Context, ecs: &mut ECS, assets: &mut Assets){
         let mut mov: Movable = ecs.get_component(self.entity_id).unwrap();
-        mov.jump(JUMP_VELOCITY);
-        ecs.set_component(self.entity_id, mov);
+        let jump_success = mov.jump(JUMP_VELOCITY);
+        if jump_success {
+            ecs.set_component(self.entity_id, mov);
+            let _ = assets.get_audio_mut(self.jump_sound_tag).unwrap().play(ctx);
+        }
     }
 }
 

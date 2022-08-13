@@ -48,10 +48,10 @@ impl InputState{
     }
 }
 
-pub fn player_handle_input(ecs: &mut ECS, entity_id: usize, input: &mut InputState, _dt: f32) {
+pub fn player_handle_input(ctx: &Context, ecs: &mut ECS, assets: &mut Assets, entity_id: usize, input: &mut InputState, _dt: f32) {
     if input.game_active{
         if input.jump() {
-            ecs.get_component::<DinoController>(entity_id).unwrap().jump(ecs);
+            ecs.get_component::<DinoController>(entity_id).unwrap().jump(ctx, ecs, assets);
             input.jump_end();
         }
     }

@@ -24,13 +24,16 @@ pub struct Assets{
     pub dino_anim_dead: Anim,
     pub ptero_anim:     Anim,
     pub font:           graphics::Font,
+    pub jump_sound:     audio::Source,
+    pub death_sound:    audio::Source,
+    pub point_sound:    audio::Source,
 }
 
 impl Assets{
     pub fn new(ctx: &mut Context) -> Box<Assets> {
         // DINO
-        let dino_run_l = Image::new(ctx, "/dino_run_l.png").unwrap();
-        let dino_run_r = Image::new(ctx, "/dino_run_r.png").unwrap();
+        let dino_run_l = Image::new(ctx, "/images/dino_run_l.png").unwrap();
+        let dino_run_r = Image::new(ctx, "/images/dino_run_r.png").unwrap();
         let dino_anim_run = (vec![
             Sprite::new(AssetTag::DinoRunL),
             Sprite::new(AssetTag::DinoRunR),
@@ -43,38 +46,41 @@ impl Assets{
         ], 1);
 
         // PTERO
-        let ptero_1 = Image::new(ctx, "/ptero_1.png"  ).unwrap();
-        let ptero_2 = Image::new(ctx, "/ptero_2.png"  ).unwrap();
+        let ptero_1 = Image::new(ctx, "/images/ptero_1.png"  ).unwrap();
+        let ptero_2 = Image::new(ctx, "/images/ptero_2.png"  ).unwrap();
         let ptero_anim = (vec![
             Sprite::new(AssetTag::Ptero1),
             Sprite::new(AssetTag::Ptero2),
         ], 4);
 
         // OTHER
-        let font = graphics::Font::new(ctx, "/PressStart2P-Regular.ttf").unwrap();
+        let font = graphics::Font::new(ctx, "/fonts/PressStart2P-Regular.ttf").unwrap();
         Box::new(
             Assets{
                 dino_run_l,
                 dino_run_r,
-                dino_dead:      Image::new(ctx, "/dino_dead.png" ).unwrap(),
-                dino_idle:      Image::new(ctx, "/dino_idle.png" ).unwrap(),
-                cactus_small_1: Image::new(ctx, "/cactus_small_1.png"  ).unwrap(),
-                cactus_small_2: Image::new(ctx, "/cactus_small_2.png"  ).unwrap(),
-                cactus_small_3: Image::new(ctx, "/cactus_small_3.png"  ).unwrap(),
-                cactus_big_1:   Image::new(ctx, "/cactus_big_1.png"  ).unwrap(),
-                cactus_big_2:   Image::new(ctx, "/cactus_big_2.png"  ).unwrap(),
-                cactus_big_3:   Image::new(ctx, "/cactus_big_3.png"  ).unwrap(),
-                cloud:          Image::new(ctx, "/cloud.png"     ).unwrap(),
-                ground_1:       Image::new(ctx, "/ground_1.png"  ).unwrap(),
-                ground_2:       Image::new(ctx, "/ground_2.png"  ).unwrap(),
+                dino_dead:      Image::new(ctx, "/images/dino_dead.png" ).unwrap(),
+                dino_idle:      Image::new(ctx, "/images/dino_idle.png" ).unwrap(),
+                cactus_small_1: Image::new(ctx, "/images/cactus_small_1.png"  ).unwrap(),
+                cactus_small_2: Image::new(ctx, "/images/cactus_small_2.png"  ).unwrap(),
+                cactus_small_3: Image::new(ctx, "/images/cactus_small_3.png"  ).unwrap(),
+                cactus_big_1:   Image::new(ctx, "/images/cactus_big_1.png"  ).unwrap(),
+                cactus_big_2:   Image::new(ctx, "/images/cactus_big_2.png"  ).unwrap(),
+                cactus_big_3:   Image::new(ctx, "/images/cactus_big_3.png"  ).unwrap(),
+                cloud:          Image::new(ctx, "/images/cloud.png"     ).unwrap(),
+                ground_1:       Image::new(ctx, "/images/ground_1.png"  ).unwrap(),
+                ground_2:       Image::new(ctx, "/images/ground_2.png"  ).unwrap(),
                 ptero_1,
                 ptero_2,
-                restart_button: Image::new(ctx, "/restart_button.png"  ).unwrap(),
+                restart_button: Image::new(ctx, "/images/restart_button.png"  ).unwrap(),
                 dino_anim_run,
                 dino_anim_idle,
                 dino_anim_dead,
                 ptero_anim,
                 font,
+                jump_sound:     audio::Source::new(ctx, "/sounds/jump.wav").unwrap(),
+                death_sound:    audio::Source::new(ctx, "/sounds/death.wav").unwrap(),
+                point_sound:    audio::Source::new(ctx, "/sounds/point.wav").unwrap(),
             }
         )
     }
@@ -96,6 +102,22 @@ impl Assets{
             AssetTag::Ptero1        => Some(&self.ptero_1),
             AssetTag::Ptero2        => Some(&self.ptero_2),
             AssetTag::RestartButton => Some(&self.restart_button),
+            _ => None
+        }
+    }
+    pub fn get_audio(&self, tag: AssetTag) -> Option<&audio::Source> {
+        match tag {
+            AssetTag::JumpSound     => Some(&self.jump_sound),
+            AssetTag::DeathSound    => Some(&self.death_sound),
+            AssetTag::PointSound    => Some(&self.point_sound),
+            _ => None
+        }
+    }
+    pub fn get_audio_mut(&mut self, tag: AssetTag) -> Option<&mut audio::Source> {
+        match tag {
+            AssetTag::JumpSound     => Some(&mut self.jump_sound),
+            AssetTag::DeathSound    => Some(&mut self.death_sound),
+            AssetTag::PointSound    => Some(&mut self.point_sound),
             _ => None
         }
     }
@@ -158,6 +180,7 @@ pub enum AssetTag{
     PteroAnim,
     Cloud,
     RestartButton,
+    JumpSound, DeathSound, PointSound,
 }
 
 impl AssetTag{

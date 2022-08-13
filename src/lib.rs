@@ -12,9 +12,11 @@ pub mod prelude{
 
     pub use ggez::{
         conf,
+        timer,
         Context,
         event::{self, KeyCode, KeyMods}, GameResult,
-        graphics::{self, Color, Image}, timer,
+        graphics::{self, Color, Image},
+        audio::{self, SoundSource},
     };
 
     pub use oorandom::Rand32;
@@ -31,10 +33,10 @@ pub mod prelude{
     };
 }
 
+use prelude::*;
 use std::io::{Read, Write};
 use std::path;
-use prelude::*;
-use ggez::{conf, filesystem, ContextBuilder, GameResult};
+use ggez::filesystem;
 
 pub trait Draw{
     fn draw(&self, ctx: &mut Context, ecs: &ECS, assets: &Assets, entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult;
