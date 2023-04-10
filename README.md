@@ -1,18 +1,13 @@
-# Chrome Dino Game Implemented in Rust
+# Como Treinar seu Dinossauro
 
-Chrome's Dino game made with **Rust** and `ggez` crate.
-`ggez` is used for loading resources and displaying graphics, while everything else (entity-component system, physics, collision, animation, asset management) is written from scratch.
+Rede Neural Artificial (RNA) pode ser definida como uma estrutura complexa interligada por elementos de processamento simples (neurônios), que possuem a capacidade de realizar operações como cálculos em paralelo, para processamento de dados e representação de conhecimento
 
+Uma exemplo de RNA com jogo DINO
 
-## How to Run
+Créditos pelo jogo **[itch.io](https://kapanion.itch.io/rust-dino-game)**.
 
-You can download the built game from **[itch.io](https://kapanion.itch.io/rust-dino-game)**.
+## Start
 
-You can also compile the source code yourself. For that, you must have `cargo` installed. Open the base directory and run the following command:
 ```
 cargo run
 ```
-
-[//]: # (## Implementation Details)
-
-[//]: # (TODO)
