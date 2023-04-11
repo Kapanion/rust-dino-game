@@ -54,7 +54,7 @@ pub fn init_perceptron(bias: f64, learning_rate: f64, input: usize ) -> Perceptr
     };
 
     for i in 0..input {
-        perceptron.weights[i] = f64::from(rng.rand_range(0..1000)) + 0.01;
+        perceptron.weights[i] = f64::from(rng.rand_range(0..999)) / 1000. + 0.01;
 
         if rng.rand_range(0..10) < 5 {
             perceptron.weights[i] *= -1.
