@@ -27,7 +27,7 @@ struct MainState {
     obstacle_manager: ObstacleManager,
     input: InputState,
     assets: Box<Assets>,
-    rng: Rand32,
+    rng: ThreadRng,
     restart_button: UIButton,
     pub score: Score,
     lose_time: f32,
@@ -66,7 +66,7 @@ impl MainState {
         let mut restart_button = UIButton::new(&assets, AssetTag::RestartButton, v2!());
         restart_button.deactivate();
 
-        let rng = Rand32::new(get_time());
+        let rng = rand::thread_rng();
 
         let s = MainState{
             ecs,

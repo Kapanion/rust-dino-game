@@ -20,7 +20,8 @@ pub mod prelude{
         audio::{self, SoundSource},
     };
 
-    pub use oorandom::Rand32;
+    pub use rand::Rng;
+    pub use rand::rngs::ThreadRng;
 
     pub use crate::{
         *,
@@ -35,6 +36,7 @@ pub mod prelude{
 }
 
 use prelude::*;
+use rand::rngs::ThreadRng;
 use std::io::{Read, Write};
 use std::path;
 use ggez::filesystem;
@@ -44,7 +46,7 @@ pub trait Draw{
 }
 
 pub trait Update{
-    fn update(ecs: &mut ECS, assets: &Assets, rng: &mut Rand32, entity_id: usize, time: f32, dt: f32);
+    fn update(ecs: &mut ECS, assets: &Assets, rng: &mut ThreadRng, entity_id: usize, time: f32, dt: f32);
 }
 
 // World and screen positions

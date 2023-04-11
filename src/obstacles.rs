@@ -48,8 +48,8 @@ impl ObstaclePool {
         self.obstacles.push(entry);
     }
 
-    fn activate_next(&mut self, rng: &mut Rand32) -> Option<usize>{
-        let next = (rng.rand_u32() as usize) % self.obstacles.len();
+    fn activate_next(&mut self, rng: &mut ThreadRng) -> Option<usize>{
+        let next = (rng.gen::<u32>() as usize) % self.obstacles.len();
         for i in 0..self.obstacles.len(){
             let ind = (next + i) % self.obstacles.len();
             if !self.obstacles[ind].active {
@@ -115,7 +115,7 @@ impl ObstacleManager {
         self.deactivate_all();
         self.scroll_speed = START_SCROLL_SPEED;
     }
-    fn check_for_next_obstacle(&mut self, ecs: &mut ECS, rng: &mut Rand32, time: f32) {
+    fn check_for_next_obstacle(&mut self, ecs: &mut ECS, rng: &mut ThreadRng, time: f32) {
         if time < self.next_spawn_time {return}
         let next_cactus = self.pool.activate_next(rng).unwrap();
         // println!("Cactus {next_cactus} activated");
@@ -129,7 +129,7 @@ impl ObstacleManager {
         ecs.set_component::<Movable>(next_cactus, mov);
 
         self.update_movables_speed(ecs, self.scroll_speed);
-        self.next_spawn_time = time + self.delay + rng.rand_float() * 1.3;
+        self.next_spawn_time = time + self.delay + rng.gen::<f32>() * 1.3;
     }
     fn update_movables_speed(&self, ecs: &mut ECS, new_vel: f32){
         if self.scroll_speed >= MAX_SCROLL_SPEED {return}
@@ -149,7 +149,7 @@ impl ObstacleManager {
         if self.scroll_speed >= MAX_SCROLL_SPEED {return}
         self.scroll_speed += dt * 5.5;
     }
-    pub fn update(&mut self, ecs: &mut ECS, rng: &mut Rand32, time: f32, dt: f32){
+    pub fn update(&mut self, ecs: &mut ECS, rng: &mut ThreadRng, time: f32, dt: f32){
         for i in 0..self.pool.obstacles.len() {
             if self.pool.obstacles[i].active{
                 let id = self.pool.obstacles[i].id;

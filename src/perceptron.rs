@@ -1,6 +1,4 @@
-use oorandom::Rand32;
-
-use crate::get_time;
+use rand::Rng;
 
 pub const INPUTS: usize = 3;
 
@@ -46,7 +44,7 @@ impl Perceptron {
 
 pub fn init_perceptron(bias: f64, learning_rate: f64, input: usize ) -> Perceptron {
 
-    let mut rng = Rand32::new(get_time());
+    let mut rng = rand::thread_rng();
     let mut perceptron = Perceptron {
         bias: bias,
         learning_rate: learning_rate,
@@ -54,11 +52,7 @@ pub fn init_perceptron(bias: f64, learning_rate: f64, input: usize ) -> Perceptr
     };
 
     for i in 0..input {
-        perceptron.weights[i] = f64::from(rng.rand_range(0..999)) / 1000. + 0.01;
-
-        if rng.rand_range(0..10) < 5 {
-            perceptron.weights[i] *= -1.
-        }
+        perceptron.weights[i] = rng.gen_range(-0.99..0.99) + 0.01;
     }
 
     perceptron
