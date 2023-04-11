@@ -1,24 +1,57 @@
 #![windows_subsystem = "windows"]
 
+use dino_game::perceptron::init_perceptron;
 use dino_game::prelude::*;
 use ggez::mint;
 
-use std::time::Duration;
 use ggez::conf::Conf;
 use ggez::event::MouseButton;
+use std::time::Duration;
 
-struct EntityIds{
-    dino:       usize,
-    ground1:    usize,
-    ground2:    usize,
-    cloud:      usize,
-    ptero:      usize,
+struct EntityIds {
+    dino: usize,
+    ground1: usize,
+    ground2: usize,
+    cloud: usize,
+    ptero: usize,
 }
 
-struct Score{
+struct Score {
     cur: f32,
     pub high: u32,
     next_sound: f32,
+}
+struct RNA {
+    bias: f64,
+    learning_rate: f64,
+    inputs: usize,
+    errors: u32,
+    actuator: f64,
+    generation: u32,
+    color: Color,
+    perceptron: perceptron::Perceptron,
+}
+
+impl RNA {
+    fn restart(&mut self) {
+        let mut rng = rand::thread_rng();
+        self.color = Color::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>(), 1.0);
+        self.errors = 0;
+        self.actuator = 0.;
+        self.generation += 1;
+        self.perceptron = perceptron::init_perceptron(self.bias, self.learning_rate, self.inputs)
+    }
+
+    fn predict(&mut self, perceptron_inputs: &perceptron::PerceptronInputs) -> f64 {
+        self.actuator = self.perceptron.predict(perceptron_inputs);
+
+        self.actuator
+    }
+
+    fn adjust(&mut self, delta: f64, perceptron_inputs: &perceptron::PerceptronInputs) {
+        self.errors += 1;
+        self.perceptron.adjust(delta, perceptron_inputs);
+    }
 }
 
 struct MainState {
@@ -31,9 +64,7 @@ struct MainState {
     restart_button: UIButton,
     pub score: Score,
     lose_time: f32,
-    pub cycle: i32,
-    pub action: f64,
-    pub perceptron: perceptron::Perceptron
+    pub rna: RNA,
 }
 
 impl MainState {
@@ -50,7 +81,8 @@ impl MainState {
         let mov_vec = vec![ground1, ground2];
 
         let cactus_tags = AssetTag::cactus_tags();
-        let mut obstacle_manager = ObstacleManager::with_capacity(cactus_tags.len(), CACTUS_MIN_DELAY, mov_vec);
+        let mut obstacle_manager =
+            ObstacleManager::with_capacity(cactus_tags.len(), CACTUS_MIN_DELAY, mov_vec);
         for _ in 0..cactus_tags.len() {
             let cactus = ecs.new_entity();
             obstacle_manager.add_cactus(cactus);
@@ -66,11 +98,12 @@ impl MainState {
         let mut restart_button = UIButton::new(&assets, AssetTag::RestartButton, v2!());
         restart_button.deactivate();
 
-        let rng = rand::thread_rng();
+        let mut rng = rand::thread_rng();
+        let color = Color::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>(), 1.0);
 
-        let s = MainState{
+        let s = MainState {
             ecs,
-            ent: EntityIds{
+            ent: EntityIds {
                 dino,
                 ground1,
                 ground2,
@@ -82,18 +115,26 @@ impl MainState {
             assets,
             rng,
             restart_button,
-            score: Score{
+            score: Score {
                 cur: 0.,
                 high: high_score,
-                next_sound: 100.0
+                next_sound: 100.0,
             },
             lose_time: 0.,
-            cycle: 1,
-            action: 0.,
-            perceptron: perceptron::init_perceptron(0.01, 0.0006, 3),
+            rna: RNA {
+                bias: 0.01,
+                learning_rate: 0.0005,
+                inputs: 3,
+                errors: 0,
+                actuator: 0.,
+                generation: 1,
+                color,
+                perceptron: init_perceptron(0.01, 0.0005, 3),
+            },
         };
         Ok(s)
     }
+
     fn start(&mut self, _ctx: &mut Context) {
         // DINO
         let mut dino_movable = Movable::new(
@@ -106,12 +147,16 @@ impl MainState {
         let dino_collider_head = BoxCollider::new(v2!(22., 17.)).with_offset(v2!(18., 32.));
         let dino_collider = Collider::new_double(dino_collider_body, dino_collider_head);
         let dino_anim = Animation::new(&mut self.assets, AssetTag::DinoAnimRun);
-        let dino_state_machine = AnimStateMachine::new(&mut self.assets, AssetTag::DinoStateMachine, DinoState::Run);
+        let dino_state_machine =
+            AnimStateMachine::new(&mut self.assets, AssetTag::DinoStateMachine, DinoState::Run);
 
         self.ecs.add_component(self.ent.dino, dino_movable);
         self.ecs.add_component(self.ent.dino, dino_collider);
         self.ecs.add_component(self.ent.dino, dino_anim);
-        self.ecs.add_component(self.ent.dino, DinoController::new(self.ent.dino, AssetTag::JumpSound));
+        self.ecs.add_component(
+            self.ent.dino,
+            DinoController::new(self.ent.dino, AssetTag::JumpSound),
+        );
         self.ecs.add_component(self.ent.dino, DinoState::Run);
         self.ecs.add_component(self.ent.dino, dino_state_machine);
         // self.components.add_component(dino, CircleGraphic::new(47.0));
@@ -119,9 +164,15 @@ impl MainState {
         // PTERO
         let img = self.assets.get_image(AssetTag::Ptero1).unwrap();
         let ptero_wid = img.width() as f32;
-        let ptero_col = Collider::new_single(BoxCollider::new(v2!(ptero_wid/2. - 8., 20.)).with_offset(v2!(8., 4.)));
+        let ptero_col = Collider::new_single(
+            BoxCollider::new(v2!(ptero_wid / 2. - 8., 20.)).with_offset(v2!(8., 4.)),
+        );
         let ptero_scr = EndlessScroll::new(ptero_wid);
-        let ptero_mov = Movable::new(v2!(SCREEN.0 + 50., GROUND_Y_COORD + 40.), v2!(-30.,0.), v2!());
+        let ptero_mov = Movable::new(
+            v2!(SCREEN.0 + 50., GROUND_Y_COORD + 40.),
+            v2!(-30., 0.),
+            v2!(),
+        );
         let ptero_anim = Animation::new(&self.assets, AssetTag::PteroAnim);
 
         self.ecs.add_component(self.ent.ptero, ptero_mov);
@@ -145,30 +196,35 @@ impl MainState {
             let mut hs = v2!(img.width() as f32 / 2.0 - pad, img.height() as f32 / 2.0);
             hs.y -= 2.;
             let col_high = BoxCollider::new(hs);
-            let offset_y =
-                if img.height() == 100{ // big cactus
-                    if img.width() > 100 {-2.}
-                    else {-4.}
-                } else {0.};
+            let offset_y = if img.height() == 100 {
+                // big cactus
+                if img.width() > 100 {
+                    -2.
+                } else {
+                    -4.
+                }
+            } else {
+                0.
+            };
             self.ecs.add_component(
                 cactus,
                 Movable::new(
-                    v2!(SCREEN.0 + 50.0, GROUND_Y_COORD + img.height() as f32 / 2.0 + offset_y),
+                    v2!(
+                        SCREEN.0 + 50.0,
+                        GROUND_Y_COORD + img.height() as f32 / 2.0 + offset_y
+                    ),
                     v2!(-START_SCROLL_SPEED, 0.0),
                     Vec2::ZERO,
-                )
+                ),
             );
-            self.ecs.add_component(cactus,Collider::new_double(col_low, col_high));
+            self.ecs
+                .add_component(cactus, Collider::new_double(col_low, col_high));
             self.ecs.add_component(cactus, Sprite::new(cactus_tags[i]));
             // self.components.add_component(cactus, CircleGraphic::new(20.0));
         }
 
         // GROUND
-        let mut ground_mov = Movable::new(
-            v2!(0., -500.),
-            v2!(-START_SCROLL_SPEED, 0.),
-            v2!()
-        );
+        let mut ground_mov = Movable::new(v2!(0., -500.), v2!(-START_SCROLL_SPEED, 0.), v2!());
         let ground_spr_1 = Sprite::new(AssetTag::Ground1);
         let ground_spr_2 = Sprite::new(AssetTag::Ground2);
         let w = self.assets.get_image(AssetTag::Ground1).unwrap().width() as f32;
@@ -187,7 +243,7 @@ impl MainState {
         let cloud_mov = Movable::new(
             v2!(0., -200.),
             v2!(-START_SCROLL_SPEED / 2.0, 0.),
-            v2!(0., 0.)
+            v2!(0., 0.),
         );
         let cloud_spr = Sprite::new(AssetTag::Cloud);
         let w = self.assets.get_image(AssetTag::Cloud).unwrap().width() as f32;
@@ -197,12 +253,13 @@ impl MainState {
         self.ecs.add_component(self.ent.cloud, cloud_spr);
         self.ecs.add_component(self.ent.cloud, cloud_scr);
     }
+
     fn restart(&mut self, ctx: &mut Context) {
         self.input = InputState::new();
 
-        if  timer::time_since_start(ctx).as_secs_f32() < self.lose_time + 0.3{
+        if timer::time_since_start(ctx).as_secs_f32() < self.lose_time + 0.3 {
             self.input.game_over();
-            return
+            return;
         }
 
         self.score.cur = 0.;
@@ -225,7 +282,6 @@ impl MainState {
     }
 }
 
-
 impl event::EventHandler<ggez::GameError> for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, DESIRED_FPS) {
@@ -233,22 +289,36 @@ impl event::EventHandler<ggez::GameError> for MainState {
             let time = timer::time_since_start(ctx).as_secs_f32();
 
             // INPUT STUFF
-            input::player_handle_input(ctx, &mut self.ecs, &mut self.assets, self.ent.dino, &mut self.input, dt);
+            input::player_handle_input(
+                ctx,
+                &mut self.ecs,
+                &mut self.assets,
+                self.ent.dino,
+                &mut self.input,
+                dt,
+            );
 
             if self.input.restart() {
                 self.restart(ctx);
                 return Ok(());
             }
-            if self.input.pause() || !self.input.game_active() {continue}
+            if self.input.pause() || !self.input.game_active() {
+                continue;
+            }
 
             // EVERYTHING ELSE
             self.score.cur += dt * (10. + self.score.cur / 300.);
             if self.score.cur >= self.score.next_sound {
-                let _ = self.assets.get_audio_mut(AssetTag::PointSound).unwrap().play(ctx);
+                let _ = self
+                    .assets
+                    .get_audio_mut(AssetTag::PointSound)
+                    .unwrap()
+                    .play(ctx);
                 self.score.next_sound += 100.;
             }
 
-            self.obstacle_manager.update(&mut self.ecs, &mut self.rng, time, dt);
+            self.obstacle_manager
+                .update(&mut self.ecs, &mut self.rng, time, dt);
 
             update! {
                 [&mut self.ecs, &self.assets, &mut self.rng, time, dt]
@@ -260,30 +330,36 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 Animation:                          self.ent.dino, self.ent.ptero;
             };
 
-            let mut input = perceptron::PerceptronInputs { values: [0.0; perceptron::INPUTS] };
+            let mut input = perceptron::PerceptronInputs {
+                values: [0.0; perceptron::INPUTS],
+            };
             input.values[0] = self.obstacle_manager.get_speed();
             input.values[1] = self.obstacle_manager.get_obstacle_x(&mut self.ecs);
             input.values[2] = self.obstacle_manager.get_obstacle_y(&mut self.ecs);
 
-            self.action = self.perceptron.predict(&input);
-
-            if self.action  > 0.5 {
+            if self.rna.predict(&input) > 0.5 {
                 self.input.jump_start();
             }
 
             // Losing the game
-            if self.obstacle_manager.check_collision(&mut self.ecs, self.ent.dino) {
-                if self.cycle < 5 {
-                    self.cycle += 1;
-                    self.perceptron.adjust(0.1, &input);
+            if self
+                .obstacle_manager
+                .check_collision(&mut self.ecs, self.ent.dino)
+            {
+                if self.rna.errors < 5 {
+                    self.rna.adjust(0.1, &input);
                 } else {
-                    self.cycle = 1;
-                    self.perceptron = perceptron::init_perceptron(0.01, 0.0006, 3)
+                    self.rna.restart();
                 }
 
-                let _ = self.assets.get_audio_mut(AssetTag::DeathSound).unwrap().play(ctx);
+                let _ = self
+                    .assets
+                    .get_audio_mut(AssetTag::DeathSound)
+                    .unwrap()
+                    .play(ctx);
 
-                self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
+                self.ecs
+                    .set_component::<DinoState>(self.ent.dino, DinoState::Dead);
                 update! {
                     [&mut self.ecs, &self.assets, &mut self.rng, time, dt]
                     AnimStateMachine::<DinoState>:      self.ent.dino;
@@ -307,7 +383,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         }
         Ok(())
     }
-    
+
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         if self.input.pause() || !self.input.game_active() {
             timer::sleep(Duration::new(0, 1_000_000_000 / DESIRED_FPS));
@@ -320,154 +396,174 @@ impl event::EventHandler<ggez::GameError> for MainState {
         let screen_size = SCREEN;
 
         for (sprite, movable) in iter_zip!(self.ecs, Sprite, Movable) {
-            sprite.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
+            sprite.draw(
+                ctx,
+                &self.ecs,
+                &mut self.assets,
+                0,
+                movable.pos,
+                screen_size,
+            )?;
         }
 
         for (anim, movable) in iter_zip!(self.ecs, Animation, Movable) {
-            anim.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
+            anim.draw(
+                ctx,
+                &self.ecs,
+                &mut self.assets,
+                0,
+                movable.pos,
+                screen_size,
+            )?;
         }
 
-        self.restart_button.draw(ctx, &self.ecs, &self.assets, 0, v2!(), SCREEN)?;
+        self.restart_button
+            .draw(ctx, &self.ecs, &self.assets, 0, v2!(), SCREEN)?;
 
         // Draw colliders:
         if SHOW_COLLIDERS {
             for (col, movable) in iter_zip!(self.ecs, Collider, Movable) {
-                col.draw(ctx, &self.ecs, &mut self.assets, 0, movable.pos, screen_size)?;
+                col.draw(
+                    ctx,
+                    &self.ecs,
+                    &mut self.assets,
+                    0,
+                    movable.pos,
+                    screen_size,
+                )?;
             }
         }
 
         // PERCEPTRON
 
-        let input_s  = graphics::Mesh::new_circle(
+        let input_s = graphics::Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
             mint::Point2 { x: -970., y: 100. },
             40.0,
             0.2,
-            Color::new(0., 0., 0., 1.0),
+            self.rna.color,
         )?;
 
         graphics::draw(
             ctx,
             &input_s,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.color),
         )?;
 
         let line_input_s = graphics::Mesh::new_line(
             ctx,
             &[Vec2::new(250., 120.), Vec2::new(580., 310.)],
             4.,
-            Color::new(0., 0., 0., 0.5),
+            self.rna.color,
         )?;
 
         graphics::draw(
             ctx,
             &line_input_s,
-            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+            (v2!(0., 0.), 0.0, self.rna.color),
         )?;
 
-        let input_x  = graphics::Mesh::new_circle(
+        let input_x = graphics::Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
             mint::Point2 { x: -970., y: 300. },
             40.0,
             0.2,
-            Color::new(0., 0., 0., 1.0),
+            self.rna.color,
         )?;
 
         graphics::draw(
             ctx,
             &input_x,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.color),
         )?;
 
         let line_input_x = graphics::Mesh::new_line(
             ctx,
             &[Vec2::new(580., 310.), Vec2::new(250., 310.)],
             4.,
-            Color::new(0., 0., 0., 0.5),
+            self.rna.color,
         )?;
 
         graphics::draw(
             ctx,
             &line_input_x,
-            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+            (v2!(0., 0.), 0.0, self.rna.color),
         )?;
 
-        let input_y  = graphics::Mesh::new_circle(
+        let input_y = graphics::Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
             mint::Point2 { x: -970., y: 500. },
             40.0,
             0.2,
-            Color::new(0., 0., 0., 1.0),
+            self.rna.color,
+        )?;
+
+        graphics::draw(
+            ctx,
+            &input_y,
+            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.color),
         )?;
 
         let line_input_y = graphics::Mesh::new_line(
             ctx,
             &[Vec2::new(580., 310.), Vec2::new(250., 500.)],
             4.,
-            Color::new(0., 0., 0., 0.5),
+            self.rna.color,
         )?;
-
+        
         graphics::draw(
             ctx,
             &line_input_y,
-            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+            (v2!(0., 0.), 0.0, self.rna.color),
         )?;
 
-        graphics::draw(
-            ctx,
-            &input_y,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
-        )?;
-
-        let activation  = graphics::Mesh::new_circle(
+        let activation = graphics::Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
             mint::Point2 { x: -545., y: 300. },
             60.0,
             0.2,
-            Color::new(0., 0., 0., 1.0),
+            self.rna.color,
         )?;
 
         graphics::draw(
             ctx,
             &activation,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.color),
         )?;
 
         let line_input_activation = graphics::Mesh::new_line(
             ctx,
             &[Vec2::new(900., 310.), Vec2::new(700., 310.)],
             4.,
-            Color::new(0., 0., 0., 0.5),
+            self.rna.color,
         )?;
 
         graphics::draw(
             ctx,
             &line_input_activation,
-            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+            (v2!(0., 0.), 0.0, self.rna.color),
         )?;
 
-
-        let output_circle  = graphics::Mesh::new_circle(
+        let output_circle = graphics::Mesh::new_circle(
             ctx,
             graphics::DrawMode::fill(),
             mint::Point2 { x: -250., y: 300. },
             40.0,
             0.2,
-            Color::new(0., 0., 0., 1.0),
+            self.rna.color,
         )?;
 
         graphics::draw(
             ctx,
             &output_circle,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.color),
         )?;
 
         const COL: f32 = 83. / 255.;
-
 
         let s_str = format!("V: {:0.0}", self.obstacle_manager.get_speed() as u32);
         let s_display = graphics::Text::new((s_str, self.assets.font, 20.0));
@@ -481,7 +577,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-        let w1_str = format!("w1: {:0.2}", self.perceptron.get_weights()[0] as f32);
+        let w1_str = format!("w1: {:0.4}", self.rna.perceptron.get_weights()[0] as f32);
         let w1_display = graphics::Text::new((w1_str, self.assets.font, 20.0));
         graphics::draw(
             ctx,
@@ -493,8 +589,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-
-        let x_str = format!("X: {:0.0}", self.obstacle_manager.get_obstacle_x(&mut self.ecs) as u32);
+        let x_str = format!(
+            "X: {:0.0}",
+            self.obstacle_manager.get_obstacle_x(&mut self.ecs) as u32
+        );
         let x_display = graphics::Text::new((x_str, self.assets.font, 20.0));
         graphics::draw(
             ctx,
@@ -506,7 +604,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-        let w2_str = format!("w2: {:0.2}", self.perceptron.get_weights()[1] as f32);
+        let w2_str = format!("w2: {:0.4}", self.rna.perceptron.get_weights()[1] as f32);
         let w2_display = graphics::Text::new((w2_str, self.assets.font, 20.0));
         graphics::draw(
             ctx,
@@ -518,8 +616,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-
-        let y_str = format!("Y: {:0.0}", self.obstacle_manager.get_obstacle_y(&mut self.ecs));
+        let y_str = format!(
+            "Y: {:0.0}",
+            self.obstacle_manager.get_obstacle_y(&mut self.ecs)
+        );
         let y_display = graphics::Text::new((y_str, self.assets.font, 20.0));
         graphics::draw(
             ctx,
@@ -531,7 +631,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-        let w3_str = format!("w3: {:0.2}", self.perceptron.get_weights()[2] as f32);
+        let w3_str = format!("w3: {:0.4}", self.rna.perceptron.get_weights()[2] as f32);
         let w3_display = graphics::Text::new((w3_str, self.assets.font, 20.0));
         graphics::draw(
             ctx,
@@ -543,7 +643,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-        let w4_str = format!("Bias: {:0.5}", self.perceptron.get_bias() as f32);
+        let w4_str = format!("Bias: {:0.5}", self.rna.perceptron.get_bias() as f32);
         let w4_display = graphics::Text::new((w4_str, self.assets.font, 20.0));
         graphics::draw(
             ctx,
@@ -555,8 +655,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-        
-        let output_display = if self.action < 0.5 {
+        let output_display = if self.rna.actuator < 0.5 {
             graphics::Text::new(("CORRER", self.assets.font, 20.0))
         } else {
             graphics::Text::new(("PULAR", self.assets.font, 20.0))
@@ -571,17 +670,21 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ),
         )?;
 
-        
         // Drawing text:
-        let score_str = format!("Tentativas {:0>2} {:0>5}", self.cycle, self.score.cur as u32);
+        let score_str = format!(
+            "Geração {:0>2} {:0>5}",
+            self.rna.generation, self.score.cur as u32
+        );
         let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
         let text_width = score_display.width(ctx);
-        graphics::draw(ctx,&score_display,
+        graphics::draw(
+            ctx,
+            &score_display,
             (
-               v2!(SCREEN.0 - text_width - 15., 15.),
-               0.0,
-               Color::new(COL, COL, COL, 1.0)
-            )
+                v2!(SCREEN.0 - text_width - 15., 15.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
         )?;
 
         graphics::present(ctx)?;
@@ -591,9 +694,13 @@ impl event::EventHandler<ggez::GameError> for MainState {
     }
 
     fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
-        let world_pos = screen_to_world_coords(SCREEN, v2!(x,y));
+        let world_pos = screen_to_world_coords(SCREEN, v2!(x, y));
         if button == MouseButton::Left {
-            if self.restart_button.col.contains_point(self.restart_button.pos, world_pos) {
+            if self
+                .restart_button
+                .col
+                .contains_point(self.restart_button.pos, world_pos)
+            {
                 self.restart(ctx);
             }
         }
@@ -606,11 +713,11 @@ impl event::EventHandler<ggez::GameError> for MainState {
         _keymod: KeyMods,
         _repeat: bool,
     ) {
-        match keycode{
+        match keycode {
             KeyCode::Space | KeyCode::Up => {
                 self.input.jump_start();
             }
-            _ => ()
+            _ => (),
         }
     }
 
@@ -620,7 +727,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 self.input.jump_end();
             }
             KeyCode::Q => {
-                if PAUSE_ENABLED{
+                if PAUSE_ENABLED {
                     self.input.toggle_pause();
                 }
             }
@@ -628,7 +735,6 @@ impl event::EventHandler<ggez::GameError> for MainState {
         }
     }
 }
-
 
 pub fn main() -> GameResult {
     let resource_dir = if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
@@ -639,11 +745,15 @@ pub fn main() -> GameResult {
         std::path::PathBuf::from("./resources")
     };
 
-    let (w,h) = SCREEN;
+    let (w, h) = SCREEN;
 
     let cb = ggez::ContextBuilder::new("rna-dino", "Kapanion, Eugenio Cunha")
         .default_conf(Conf::new())
-        .window_setup(conf::WindowSetup::default().icon("/images/dino_idle.png").title("Como Treinar Seu Dinossauro"))
+        .window_setup(
+            conf::WindowSetup::default()
+                .icon("/images/dino_idle.png")
+                .title("Como Treinar Seu Dinossauro"),
+        )
         .window_mode(conf::WindowMode::default().dimensions(w, h))
         .add_resource_path(resource_dir);
 
