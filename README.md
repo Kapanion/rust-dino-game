@@ -4,6 +4,11 @@ Rede Neural Artificial (RNA) pode ser definida como uma estrutura complexa inter
 
 Uma exemplo de RNA com jogo DINO
 
+## Print
+
+<img src="/media/print.png"/>
+
+
 Créditos pelo jogo **[itch.io](https://kapanion.itch.io/rust-dino-game)**.
 
 ## Start

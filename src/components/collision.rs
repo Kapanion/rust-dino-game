@@ -120,7 +120,7 @@ impl Collider {
         }
     }
 
-    fn get_pos(ecs: &ECS, entity_id: usize) -> Vec2{
+    pub fn get_pos(ecs: &ECS, entity_id: usize) -> Vec2{
         ecs.get_component::<Movable>(entity_id).unwrap().pos
     }
 

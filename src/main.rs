@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use dino_game::prelude::*;
+use ggez::mint;
 
 use std::time::Duration;
 use ggez::conf::Conf;
@@ -30,6 +31,9 @@ struct MainState {
     restart_button: UIButton,
     pub score: Score,
     lose_time: f32,
+    pub cycle: i32,
+    pub action: f64,
+    pub perceptron: perceptron::Perceptron
 }
 
 impl MainState {
@@ -84,6 +88,9 @@ impl MainState {
                 next_sound: 100.0
             },
             lose_time: 0.,
+            cycle: 1,
+            action: 0.,
+            perceptron: perceptron::init_perceptron(0.01, 0.0006, 3),
         };
         Ok(s)
     }
@@ -158,7 +165,7 @@ impl MainState {
 
         // GROUND
         let mut ground_mov = Movable::new(
-            v2!(0., 0.),
+            v2!(0., -500.),
             v2!(-START_SCROLL_SPEED, 0.),
             v2!()
         );
@@ -178,7 +185,7 @@ impl MainState {
 
         // CLOUD
         let cloud_mov = Movable::new(
-            v2!(0., 200.),
+            v2!(0., -200.),
             v2!(-START_SCROLL_SPEED / 2.0, 0.),
             v2!(0., 0.)
         );
@@ -253,9 +260,27 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 Animation:                          self.ent.dino, self.ent.ptero;
             };
 
+            let mut input = perceptron::PerceptronInputs { values: [0.0; perceptron::INPUTS] };
+            input.values[0] = self.obstacle_manager.get_speed();
+            input.values[1] = self.obstacle_manager.get_obstacle_x(&mut self.ecs);
+            input.values[2] = self.obstacle_manager.get_obstacle_y(&mut self.ecs);
+
+            self.action = self.perceptron.predict(&input);
+
+            if self.action  > 0.5 {
+                self.input.jump_start();
+            }
+
             // Losing the game
             if self.obstacle_manager.check_collision(&mut self.ecs, self.ent.dino) {
-                // println!("\nGame over!");
+                if self.cycle < 5 {
+                    self.cycle += 1;
+                    self.perceptron.adjust(0.1, &input);
+                } else {
+                    self.cycle = 1;
+                    self.perceptron = perceptron::init_perceptron(0.01, 0.0006, 3)
+                }
+
                 let _ = self.assets.get_audio_mut(AssetTag::DeathSound).unwrap().play(ctx);
 
                 self.ecs.set_component::<DinoState>(self.ent.dino, DinoState::Dead);
@@ -273,11 +298,11 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 }
 
                 self.restart_button.activate();
-                self.lose_time = time;
+                // self.lose_time = time;
 
                 self.draw(ctx)?;
                 self.input.game_over();
-                // let _ = event::quit(ctx);
+                self.input.set_restart();
             }
         }
         Ok(())
@@ -311,16 +336,246 @@ impl event::EventHandler<ggez::GameError> for MainState {
             }
         }
 
-        // Draw debug circles:
-        // for (circle_graphic, movable) in iter_zip!(self.components, CircleGraphic, Movable) {
-        //     circle_graphic.draw(ctx, movable.pos, screen_size)?;
-        // }
+        // PERCEPTRON
 
+        let input_s  = graphics::Mesh::new_circle(
+            ctx,
+            graphics::DrawMode::fill(),
+            mint::Point2 { x: -970., y: 100. },
+            40.0,
+            0.2,
+            Color::new(0., 0., 0., 1.0),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &input_s,
+            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+        )?;
+
+        let line_input_s = graphics::Mesh::new_line(
+            ctx,
+            &[Vec2::new(250., 120.), Vec2::new(580., 310.)],
+            4.,
+            Color::new(0., 0., 0., 0.5),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &line_input_s,
+            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+        )?;
+
+        let input_x  = graphics::Mesh::new_circle(
+            ctx,
+            graphics::DrawMode::fill(),
+            mint::Point2 { x: -970., y: 300. },
+            40.0,
+            0.2,
+            Color::new(0., 0., 0., 1.0),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &input_x,
+            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+        )?;
+
+        let line_input_x = graphics::Mesh::new_line(
+            ctx,
+            &[Vec2::new(580., 310.), Vec2::new(250., 310.)],
+            4.,
+            Color::new(0., 0., 0., 0.5),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &line_input_x,
+            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+        )?;
+
+        let input_y  = graphics::Mesh::new_circle(
+            ctx,
+            graphics::DrawMode::fill(),
+            mint::Point2 { x: -970., y: 500. },
+            40.0,
+            0.2,
+            Color::new(0., 0., 0., 1.0),
+        )?;
+
+        let line_input_y = graphics::Mesh::new_line(
+            ctx,
+            &[Vec2::new(580., 310.), Vec2::new(250., 500.)],
+            4.,
+            Color::new(0., 0., 0., 0.5),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &line_input_y,
+            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &input_y,
+            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+        )?;
+
+        let activation  = graphics::Mesh::new_circle(
+            ctx,
+            graphics::DrawMode::fill(),
+            mint::Point2 { x: -545., y: 300. },
+            60.0,
+            0.2,
+            Color::new(0., 0., 0., 1.0),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &activation,
+            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+        )?;
+
+        let line_input_activation = graphics::Mesh::new_line(
+            ctx,
+            &[Vec2::new(900., 310.), Vec2::new(700., 310.)],
+            4.,
+            Color::new(0., 0., 0., 0.5),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &line_input_activation,
+            (v2!(0., 0.), 0.0, Color::new(0., 0., 0., 0.5)),
+        )?;
+
+
+        let output_circle  = graphics::Mesh::new_circle(
+            ctx,
+            graphics::DrawMode::fill(),
+            mint::Point2 { x: -250., y: 300. },
+            40.0,
+            0.2,
+            Color::new(0., 0., 0., 1.0),
+        )?;
+
+        graphics::draw(
+            ctx,
+            &output_circle,
+            (v2!(SCREEN.0 - 15., 15.), 0.0, Color::new(0., 0., 0., 0.9)),
+        )?;
+
+        const COL: f32 = 83. / 255.;
+
+
+        let s_str = format!("V: {:0.0}", self.obstacle_manager.get_speed() as u32);
+        let s_display = graphics::Text::new((s_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &s_display,
+            (
+                v2!(SCREEN.0 - 1180., 100.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        let w1_str = format!("w1: {:0.2}", self.perceptron.get_weights()[0] as f32);
+        let w1_display = graphics::Text::new((w1_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &w1_display,
+            (
+                v2!(SCREEN.0 - 900., 100.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+
+        let x_str = format!("X: {:0.0}", self.obstacle_manager.get_obstacle_x(&mut self.ecs) as u32);
+        let x_display = graphics::Text::new((x_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &x_display,
+            (
+                v2!(SCREEN.0 - 1180., 300.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        let w2_str = format!("w2: {:0.2}", self.perceptron.get_weights()[1] as f32);
+        let w2_display = graphics::Text::new((w2_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &w2_display,
+            (
+                v2!(SCREEN.0 - 900., 280.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+
+        let y_str = format!("Y: {:0.0}", self.obstacle_manager.get_obstacle_y(&mut self.ecs));
+        let y_display = graphics::Text::new((y_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &y_display,
+            (
+                v2!(SCREEN.0 - 1180., 500.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        let w3_str = format!("w3: {:0.2}", self.perceptron.get_weights()[2] as f32);
+        let w3_display = graphics::Text::new((w3_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &w3_display,
+            (
+                v2!(SCREEN.0 - 900., 500.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        let w4_str = format!("Bias: {:0.5}", self.perceptron.get_bias() as f32);
+        let w4_display = graphics::Text::new((w4_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &w4_display,
+            (
+                v2!(SCREEN.0 - 550., 390.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        
+        let output_display = if self.action < 0.5 {
+            graphics::Text::new(("CORRER", self.assets.font, 20.0))
+        } else {
+            graphics::Text::new(("PULAR", self.assets.font, 20.0))
+        };
+        graphics::draw(
+            ctx,
+            &output_display,
+            (
+                v2!(SCREEN.0 - 200., 300.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        
         // Drawing text:
-        let score_str = format!("HI {:0>5} {:0>5}", self.score.high, self.score.cur as u32);
+        let score_str = format!("Tentativas {:0>2} {:0>5}", self.cycle, self.score.cur as u32);
         let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
         let text_width = score_display.width(ctx);
-        const COL: f32 = 83. / 255.;
         graphics::draw(ctx,&score_display,
             (
                v2!(SCREEN.0 - text_width - 15., 15.),
@@ -386,9 +641,9 @@ pub fn main() -> GameResult {
 
     let (w,h) = SCREEN;
 
-    let cb = ggez::ContextBuilder::new("dino game", "Kapanion")
+    let cb = ggez::ContextBuilder::new("rna-dino", "Kapanion, Eugenio Cunha")
         .default_conf(Conf::new())
-        .window_setup(conf::WindowSetup::default().icon("/images/dino_idle.png").title("Dino Game"))
+        .window_setup(conf::WindowSetup::default().icon("/images/dino_idle.png").title("Como Treinar Seu Dinossauro"))
         .window_mode(conf::WindowMode::default().dimensions(w, h))
         .add_resource_path(resource_dir);
 

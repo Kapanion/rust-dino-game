@@ -176,6 +176,50 @@ impl ObstacleManager {
         }
         false
     }
+
+    pub fn gep_position(&self, ecs: &ECS) -> Vec2 {
+        for i in 0..self.pool.obstacles.len() {       
+            if self.pool.obstacles[i].active{
+                let obstacle = Collider::get_pos(ecs, self.pool.obstacles[i].id);
+
+                return obstacle;
+            
+            }
+        }
+
+        Vec2::new(1200., 65.)
+    }
+
+    pub fn get_obstacle_x(&self, ecs: &ECS) -> f64 {
+        let dino = Collider::get_pos(ecs,  10);
+
+        for i in 0..self.pool.obstacles.len() {       
+            if self.pool.obstacles[i].active{
+                let obstacle = Collider::get_pos(ecs, self.pool.obstacles[i].id);
+                
+                return f64::from(dino.distance(obstacle))         
+            }
+        }
+
+        1200.
+    }
+
+    pub fn get_obstacle_y(&self, ecs: &ECS) -> f64 {
+        for i in 0..self.pool.obstacles.len() {       
+            if self.pool.obstacles[i].active{
+                let obstacle = Collider::get_pos(ecs, self.pool.obstacles[i].id);
+
+                return f64::from((GROUND_Y_COORD - obstacle.y) * -1.);
+            }
+        }
+
+        0.
+    }
+
+    pub fn get_speed(&self) -> f64 {
+        f64::from(self.scroll_speed)
+    }
+
     pub fn ids(&self) -> Vec<usize>{
         let mut res = Vec::with_capacity(self.pool.obstacles.len());
         for entry in &self.pool.obstacles {

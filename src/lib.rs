@@ -1,4 +1,5 @@
 pub mod macros;
+pub mod perceptron;
 pub mod types_and_constants;
 pub mod components;
 pub mod obstacles;
