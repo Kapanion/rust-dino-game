@@ -26,7 +26,7 @@ impl Perceptron {
         self.activate(weighted_sum)
     }
 
-    pub fn adjust(&mut self, delta: f64, perceptron_inputs: &PerceptronInputs) {
+    pub fn error(&mut self, delta: f64, perceptron_inputs: &PerceptronInputs) {
         for i in 0..INPUTS {
             self.weights[i] += delta * perceptron_inputs.values[i] * self.learning_rate;
         }

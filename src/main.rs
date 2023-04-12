@@ -50,7 +50,7 @@ impl RNA {
 
     fn adjust(&mut self, delta: f64, perceptron_inputs: &perceptron::PerceptronInputs) {
         self.errors += 1;
-        self.perceptron.adjust(delta, perceptron_inputs);
+        self.perceptron.error(delta, perceptron_inputs);
     }
 }
 
@@ -337,7 +337,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
             input.values[1] = self.obstacle_manager.get_obstacle_x(&mut self.ecs);
             input.values[2] = self.obstacle_manager.get_obstacle_y(&mut self.ecs);
 
-            if self.rna.predict(&input) > 0.5 {
+            let result = self.rna.predict(&input);
+            if result > 0.5 {
                 self.input.jump_start();
             }
 
@@ -347,7 +348,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 .check_collision(&mut self.ecs, self.ent.dino)
             {
                 if self.rna.errors < 5 {
-                    self.rna.adjust(0.1, &input);
+                    self.rna.adjust(1. - result, &input);
                 } else {
                     self.rna.restart();
                 }
