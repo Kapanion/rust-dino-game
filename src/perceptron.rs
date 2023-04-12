@@ -14,8 +14,34 @@ pub struct Perceptron {
 }
 
 impl Perceptron {
-    fn activate(&self, value: f64) -> f64 {
+
+    pub fn new(bias: f64, learning_rate: f64, weights: &Vec<f64>) -> Self {
+        let mut rng = rand::thread_rng();
+        let mut perceptron = Perceptron {
+            bias,
+            learning_rate,
+            weights: [0.0; INPUTS],
+        };
+
+        if weights.len() == 0 {
+            for i in 0..INPUTS {
+                perceptron.weights[i] = rng.gen_range(-1.0..1.0) + 0.01;
+            }
+        } else {
+            for (i, x)  in weights.iter().enumerate() {
+                perceptron.weights[i] = x.clone() + rng.gen_range(-0.1..0.1);
+            }
+        }
+
+        perceptron
+    }
+
+    fn sigmoid(&self, value: f64) -> f64 {
         return 1.0 / (1.0 + (-1.0 * (value + self.bias)).exp());
+    }
+
+    fn sigmoid_derivative(&self, value: f64) -> f64 {
+        self.sigmoid(value) * (1. - self.sigmoid(value))
     }
 
     pub fn predict(&mut self, perceptron_inputs: &PerceptronInputs) -> f64 {
@@ -23,12 +49,13 @@ impl Perceptron {
         for i in 0..INPUTS {
             weighted_sum += self.weights[i] * perceptron_inputs.values[i];
         }
-        self.activate(weighted_sum)
+        self.sigmoid(weighted_sum)
     }
 
-    pub fn error(&mut self, delta: f64, perceptron_inputs: &PerceptronInputs) {
-        for i in 0..INPUTS {
-            self.weights[i] += delta * perceptron_inputs.values[i] * self.learning_rate;
+    pub fn error(&mut self, value: f64, perceptron_inputs: &PerceptronInputs) {
+        let delta = value * self.sigmoid_derivative(value);
+        for (i, v) in perceptron_inputs.values.iter().enumerate() {
+            self.weights[i] += delta * v * self.learning_rate;
         }
         self.bias += delta * self.learning_rate;
     }
@@ -42,18 +69,3 @@ impl Perceptron {
     }
 }
 
-pub fn init_perceptron(bias: f64, learning_rate: f64, input: usize ) -> Perceptron {
-
-    let mut rng = rand::thread_rng();
-    let mut perceptron = Perceptron {
-        bias: bias,
-        learning_rate: learning_rate,
-        weights: [0.0; INPUTS],
-    };
-
-    for i in 0..input {
-        perceptron.weights[i] = rng.gen_range(-0.99..0.99) + 0.01;
-    }
-
-    perceptron
-}

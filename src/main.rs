@@ -1,6 +1,5 @@
 #![windows_subsystem = "windows"]
 
-use dino_game::perceptron::init_perceptron;
 use dino_game::prelude::*;
 use ggez::mint;
 
@@ -24,22 +23,41 @@ struct Score {
 struct RNA {
     bias: f64,
     learning_rate: f64,
-    inputs: usize,
     errors: u32,
     actuator: f64,
     generation: u32,
     color: Color,
+    score: f32,
+    weights: Vec<f64>,
     perceptron: perceptron::Perceptron,
 }
 
 impl RNA {
+    pub fn new(bias: f64, learning_rate: f64) -> Self {
+        let mut rng = rand::thread_rng();
+
+        let weights = vec![0.3409438677059516, -0.5288655008736416, 0.13924031095760808];
+
+        RNA {
+            bias,
+            learning_rate,
+            errors: 0,
+            actuator: 0.,
+            generation: 1,
+            score: 0.,
+            weights: vec![0.3409438677059516, -0.5288655008736416, 0.13924031095760808],
+            color: Color::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>(), 1.0),
+            perceptron: perceptron::Perceptron::new(bias, learning_rate, &weights),
+        }
+    }
+
     fn restart(&mut self) {
         let mut rng = rand::thread_rng();
         self.color = Color::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>(), 1.0);
         self.errors = 0;
         self.actuator = 0.;
         self.generation += 1;
-        self.perceptron = perceptron::init_perceptron(self.bias, self.learning_rate, self.inputs)
+        self.perceptron = perceptron::Perceptron::new(self.bias, self.learning_rate, &self.weights)
     }
 
     fn predict(&mut self, perceptron_inputs: &perceptron::PerceptronInputs) -> f64 {
@@ -48,9 +66,9 @@ impl RNA {
         self.actuator
     }
 
-    fn adjust(&mut self, delta: f64, perceptron_inputs: &perceptron::PerceptronInputs) {
+    fn adjust(&mut self, value: f64, perceptron_inputs: &perceptron::PerceptronInputs) {
         self.errors += 1;
-        self.perceptron.error(delta, perceptron_inputs);
+        self.perceptron.error(value, perceptron_inputs);
     }
 }
 
@@ -98,8 +116,10 @@ impl MainState {
         let mut restart_button = UIButton::new(&assets, AssetTag::RestartButton, v2!());
         restart_button.deactivate();
 
-        let mut rng = rand::thread_rng();
-        let color = Color::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>(), 1.0);
+        let rng = rand::thread_rng();
+
+        let bias = 0.01;
+        let learning_rate = 0.0006;
 
         let s = MainState {
             ecs,
@@ -121,16 +141,7 @@ impl MainState {
                 next_sound: 100.0,
             },
             lose_time: 0.,
-            rna: RNA {
-                bias: 0.01,
-                learning_rate: 0.0005,
-                inputs: 3,
-                errors: 0,
-                actuator: 0.,
-                generation: 1,
-                color,
-                perceptron: init_perceptron(0.01, 0.0005, 3),
-            },
+            rna: RNA::new(bias, learning_rate), 
         };
         Ok(s)
     }
@@ -309,6 +320,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
             // EVERYTHING ELSE
             self.score.cur += dt * (10. + self.score.cur / 300.);
             if self.score.cur >= self.score.next_sound {
+                
+                if self.score.cur > self.rna.score {
+                    self.rna.weights = self.rna.perceptron.get_weights().to_vec();
+                    self.rna.score = self.score.cur;
+                }
+                
                 let _ = self
                     .assets
                     .get_audio_mut(AssetTag::PointSound)
@@ -347,8 +364,13 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 .obstacle_manager
                 .check_collision(&mut self.ecs, self.ent.dino)
             {
-                if self.rna.errors < 5 {
-                    self.rna.adjust(1. - result, &input);
+                if self.rna.errors < 10 {
+                    let delta = if result > 0.5 {
+                        -1. * result
+                    } else {
+                        1. - result
+                    };
+                    self.rna.adjust(delta, &input);
                 } else {
                     self.rna.restart();
                 }
@@ -454,16 +476,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         let line_input_s = graphics::Mesh::new_line(
             ctx,
-            &[Vec2::new(250., 120.), Vec2::new(580., 310.)],
+            &[Vec2::new(250., 120.), Vec2::new(590., 280.)],
             4.,
             self.rna.color,
         )?;
 
-        graphics::draw(
-            ctx,
-            &line_input_s,
-            (v2!(0., 0.), 0.0, self.rna.color),
-        )?;
+        graphics::draw(ctx, &line_input_s, (v2!(0., 0.), 0.0, self.rna.color))?;
 
         let input_x = graphics::Mesh::new_circle(
             ctx,
@@ -487,11 +505,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             self.rna.color,
         )?;
 
-        graphics::draw(
-            ctx,
-            &line_input_x,
-            (v2!(0., 0.), 0.0, self.rna.color),
-        )?;
+        graphics::draw(ctx, &line_input_x, (v2!(0., 0.), 0.0, self.rna.color))?;
 
         let input_y = graphics::Mesh::new_circle(
             ctx,
@@ -510,16 +524,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         let line_input_y = graphics::Mesh::new_line(
             ctx,
-            &[Vec2::new(580., 310.), Vec2::new(250., 500.)],
+            &[Vec2::new(590., 350.), Vec2::new(250., 500.)],
             4.,
             self.rna.color,
         )?;
-        
-        graphics::draw(
-            ctx,
-            &line_input_y,
-            (v2!(0., 0.), 0.0, self.rna.color),
-        )?;
+
+        graphics::draw(ctx, &line_input_y, (v2!(0., 0.), 0.0, self.rna.color))?;
 
         let activation = graphics::Mesh::new_circle(
             ctx,

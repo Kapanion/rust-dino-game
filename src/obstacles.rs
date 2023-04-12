@@ -118,7 +118,6 @@ impl ObstacleManager {
     fn check_for_next_obstacle(&mut self, ecs: &mut ECS, rng: &mut ThreadRng, time: f32) {
         if time < self.next_spawn_time {return}
         let next_cactus = self.pool.activate_next(rng).unwrap();
-        // println!("Cactus {next_cactus} activated");
 
         let mut mov: Movable = ecs.get_component(next_cactus).unwrap();
         mov.pos.x =
