@@ -25,11 +25,11 @@ impl Perceptron {
 
         if weights.len() == 0 {
             for i in 0..INPUTS {
-                perceptron.weights[i] = rng.gen_range(-1.0..1.0) + 0.01;
+                perceptron.weights[i] = rng.gen_range(-0.99..0.99) + 0.01;
             }
         } else {
             for (i, x)  in weights.iter().enumerate() {
-                perceptron.weights[i] = x.clone() + rng.gen_range(-0.1..0.1);
+                perceptron.weights[i] = x.clone() + rng.gen_range(-0.01..0.01) + 0.01;
             }
         }
 
@@ -60,8 +60,8 @@ impl Perceptron {
         self.bias += delta * self.learning_rate;
     }
 
-    pub fn get_weights(&mut self) -> [f64; INPUTS] {
-        self.weights
+    pub fn get_weight(&mut self) -> Vec<f64> {
+        self.weights.to_vec()
     }
 
     pub fn get_bias(&mut self) -> f64 {
