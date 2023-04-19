@@ -83,12 +83,14 @@ impl BoxCollider{
 impl Draw for BoxCollider{
     fn draw(&self, ctx: &mut Context, _ecs: &ECS, _assets: &Assets, _entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult {
         let pos = world_to_screen_coords(screen_size, pos + self.offset) - self.half_size;
+        
         let rectangle = graphics::Mesh::new_rectangle(
             ctx,
             graphics::DrawMode::stroke(1.5),
             graphics::Rect::new(pos.x, pos.y, self.half_size.x * 2.0, self.half_size.y * 2.0),
-            Color::GREEN
+            Color::RED
         )?;
+        
         graphics::draw(ctx, &rectangle, DrawParam::new())
     }
 }
@@ -181,6 +183,7 @@ impl Draw for Collider{
     fn draw(&self, ctx: &mut Context, _ecs: &ECS, _assets: &Assets, _entity_id: usize, pos: Vec2, screen_size: Screen2) -> GameResult {
         for col in self.col{
             if col == None {continue}
+
             col.unwrap().draw(ctx, _ecs, _assets, _entity_id, pos, screen_size)?;
         }
         Ok(())

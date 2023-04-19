@@ -29,7 +29,7 @@ impl Perceptron {
             }
         } else {
             for (i, x)  in weights.iter().enumerate() {
-                perceptron.weights[i] = x.clone() + rng.gen_range(-0.01..0.01) + 0.01;
+                perceptron.weights[i] = x.clone() + rng.gen_range(-0.001..0.001);
             }
         }
 
