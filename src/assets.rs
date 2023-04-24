@@ -27,6 +27,7 @@ pub struct Assets{
     pub jump_sound:     audio::Source,
     pub death_sound:    audio::Source,
     pub point_sound:    audio::Source,
+    pub perceptron:     Image,
 }
 
 impl Assets{
@@ -81,6 +82,7 @@ impl Assets{
                 jump_sound:     audio::Source::new(ctx, "/sounds/jump.wav").unwrap(),
                 death_sound:    audio::Source::new(ctx, "/sounds/death.wav").unwrap(),
                 point_sound:    audio::Source::new(ctx, "/sounds/point.wav").unwrap(),
+                perceptron:     Image::new(ctx, "/images/perceptron.png"  ).unwrap(),
             }
         )
     }
@@ -102,6 +104,7 @@ impl Assets{
             AssetTag::Ptero1        => Some(&self.ptero_1),
             AssetTag::Ptero2        => Some(&self.ptero_2),
             AssetTag::RestartButton => Some(&self.restart_button),
+            AssetTag::Perceptron => Some(&self.perceptron),
             _ => None
         }
     }
@@ -181,6 +184,7 @@ pub enum AssetTag{
     Cloud,
     RestartButton,
     JumpSound, DeathSound, PointSound,
+    Perceptron
 }
 
 impl AssetTag{

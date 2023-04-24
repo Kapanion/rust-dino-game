@@ -1,14 +1,13 @@
 #![windows_subsystem = "windows"]
 
 use dino_game::prelude::*;
-use ggez::mint;
 
 use ggez::conf::Conf;
 use ggez::event::MouseButton;
 use std::time::Duration;
 
-const MAX_ERROR: f64 = 5.0;
-const MAX_POPULATION: u32 = 10000;
+const MAX_ERROR: usize = 3;
+const MAX_POPULATION: usize = 5000;
 
 struct EntityIds {
     dino: usize,
@@ -16,6 +15,7 @@ struct EntityIds {
     ground2: usize,
     cloud: usize,
     ptero: usize,
+    perceptron: usize,
 }
 
 struct Score {
@@ -25,9 +25,10 @@ struct Score {
 }
 
 struct Dino {
-    color: Color,
-    errors: f64,
-    score: f64,
+    score: f32,
+    step: usize,
+    jump: usize,
+    error: usize,
     actuator: f64,
     bias: f64,
     weights: Vec<f64>,
@@ -36,39 +37,44 @@ struct Dino {
 
 impl Dino {
     fn new(bias: f64, learning_rate: f64, weights: &Vec<f64>) -> Self {
-        let mut rng = rand::thread_rng();
-
         Dino {
-            errors: 0.,
+            error: 0,
             score: 0.,
+            step: 0,
+            jump: 0,
             actuator: 0.,
-            bias: 0.,
+            bias,
             weights: weights.clone(),
             perceptron: perceptron::Perceptron::new(bias, learning_rate, &weights),
-            color: Color::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>(), 1.0),
         }
     }
 
-    fn predict(&mut self, perceptron_inputs: &perceptron::PerceptronInputs) -> f64 {
-        self.actuator = self.perceptron.predict(perceptron_inputs);
+    fn predict(&mut self, inputs: &Vec<f64>) -> f64 {
+        self.actuator = self.perceptron.predict(&inputs);
         self.weights = self.get_weight().clone();
+
+        if self.actuator < 0.5 {
+            self.step += 1;
+        } else {
+            self.jump += 1;
+        }
 
         self.actuator
     }
 
-    fn adjust(&mut self, delta: f64, perceptron_inputs: &perceptron::PerceptronInputs) {
-        self.perceptron.error(delta, perceptron_inputs);
+    fn adjust(&mut self, delta: f64, inputs: &Vec<f64>) {
+        self.perceptron.error(delta, inputs);
 
         self.bias = self.perceptron.get_bias().clone();
         self.weights = self.perceptron.get_weight().clone();
     }
 
-    fn score(&mut self, value: f64) {
+    fn score(&mut self, value: f32) {
         self.score += value;
     }
 
-    fn error(&mut self, value: f64) {
-        self.errors += value;
+    fn error(&mut self, value: usize) {
+        self.error += value;
     }
 
     fn get_weight(&mut self) -> Vec<f64> {
@@ -78,19 +84,20 @@ impl Dino {
     fn get_bias(&mut self) -> f64 {
         self.bias
     }
-
 }
 
 struct RNA {
-    learning_rate: f64,
     best: usize,
+    learning_rate: f64,
     generation: usize,
     herd: Vec<Dino>,
 }
 
 impl RNA {
     pub fn new(bias: f64, learning_rate: f64) -> Self {
-        // let weights = vec![0.3409438677059516, -0.5288655008736416, 0.13924031095760808];
+        // PESOS DE UM DINO TREINADO
+        // let weights = vec![0.1870352501428702, -0.714498935466906, 0.680177527641077];
+
         let weights = Vec::new();
 
         let mut herd = Vec::new();
@@ -100,68 +107,108 @@ impl RNA {
         }
 
         RNA {
-            learning_rate,
             best: 0,
+            learning_rate,
             generation: 1,
-            herd: herd
+            herd,
         }
     }
 
     fn restart(&mut self) {
         let mut herd = Vec::new();
 
-        for dino in self.herd.iter_mut() {
-            if dino.score >= 5. {
-                herd.push(Dino::new(
-                    dino.bias,
-                    self.learning_rate,
-                    &dino.get_weight(),
-                ))
-            }
+        let (bias, weight) = self.get_dna();
+
+        if weight.len() > 0 {
+            println!(
+                "DNA: 🧬\n\tw1:{}\n\tw2:{}\n\tw3:{}\n\tbias:{}",
+                weight[0], weight[1], weight[2], bias
+            );
+        }
+
+        for _ in 0..MAX_POPULATION {
+            let value = if weight.len() == 0 {
+                Vec::new()
+            } else {
+                vec![weight[0], weight[1], weight[2]]
+            };
+            herd.push(Dino::new(bias.clone(), self.learning_rate, &value));
         }
 
         while herd.len() < MAX_POPULATION as usize {
-            herd.push(Dino::new(
-                0.01,
-                self.learning_rate,
-                &Vec::new(),
-            ))
+            herd.push(Dino::new(0.01, self.learning_rate, &Vec::new()))
         }
-
 
         self.generation += 1;
         self.herd = herd;
     }
 
+    fn get_dna(&mut self) -> (f64, Vec<f64>) {
+        let mut best = 0;
+        let mut bias = 0.01;
+        let mut weight: Vec<f64> = Vec::new();
+
+        for (i, dino) in self.herd.iter().enumerate() {
+            // MELHOR DNA: CORRE MAIS DO QUE PULA E PULA APENAS QUANDO NECESSÁRIO.
+            if dino.score >= self.herd[best].score 
+            && (dino.jump < dino.step) {
+                best = i;
+                bias = dino.bias.clone();
+                weight = dino.weights.clone();
+            }
+        }
+
+        if weight.len() > 0 {
+            println!(
+                "\nDINO: 🦖 \n\tscore:{}\n\tsteps:{}\n\tjumps:{}",
+                self.herd[best].score as u32, self.herd[best].step, self.herd[best].jump
+            );
+        }
+
+        return (bias, weight);
+    }
+
+
     fn get_best(&mut self) -> f64 {
-        for (i, dino) in self.herd.iter().enumerate()  {
-            if dino.errors < MAX_ERROR && dino.score > self.herd[self.best].score {
-                self.best = i
+        if self.herd[self.best].error == MAX_ERROR {
+            for (i, dino) in self.herd.iter().enumerate() {
+                if dino.error < MAX_ERROR {
+                    self.best = i;
+                    break;
+                }
+            }
+        }
+
+        for (i, dino) in self.herd.iter().enumerate() {
+            if (dino.error <= MAX_ERROR) 
+            && (dino.score >= self.herd[self.best].score)
+            && (dino.jump < dino.step) {
+                self.best = i;
             }
         }
 
         self.herd[self.best].actuator
     }
 
-    fn predict(&mut self, perceptron_inputs: &perceptron::PerceptronInputs) -> f64 {
+    fn predict(&mut self, inputs: &Vec<f64>) -> f64 {
         for dino in self.herd.iter_mut() {
-            if dino.errors < MAX_ERROR {
-                dino.predict(perceptron_inputs);
+            if dino.error < MAX_ERROR {
+                dino.predict(inputs);
             }
         }
 
         self.get_best()
     }
 
-    fn adjust(&mut self, perceptron_inputs: &perceptron::PerceptronInputs, target: f64) {
+    fn adjust(&mut self, perceptron_inputs: &Vec<f64>, target: f64) {
         for dino in self.herd.iter_mut() {
-            if dino.errors < MAX_ERROR {
+            if dino.error < MAX_ERROR {
                 if target == f64::from(0.0) && dino.actuator > f64::from(0.5) {
+                    dino.error(1);
                     dino.adjust(f64::from(-1.0) * dino.actuator, perceptron_inputs);
-                    dino.error(1.0);
-                } else if target == f64::from(1.0) && dino.actuator < f64::from(0.5) {                    
+                } else if target == f64::from(1.0) && dino.actuator < f64::from(0.5) {
+                    dino.error(1);
                     dino.adjust(f64::from(1.0) - dino.actuator, perceptron_inputs);
-                    dino.error(1.0);
                 } else {
                     dino.score(1.0);
                 }
@@ -169,16 +216,15 @@ impl RNA {
         }
     }
 
-    fn get_color(&mut self) -> Color{
-        self.herd[self.best].color
-    }
-
     fn get_generation(&self) -> usize {
         self.generation
     }
 
     fn get_population(&mut self) -> usize {
-        self.herd.iter().filter(|dino| dino.errors < MAX_ERROR).count()
+        self.herd
+            .iter()
+            .filter(|dino| dino.error < MAX_ERROR)
+            .count()
     }
 
     fn get_actuator(&mut self) -> usize {
@@ -189,14 +235,13 @@ impl RNA {
         }
     }
 
-    fn get_weights(&mut self) -> Vec<f64>{
+    fn get_weights(&mut self) -> Vec<f64> {
         self.herd[self.best].get_weight()
     }
 
     fn get_bias(&mut self) -> f64 {
         self.herd[self.best].get_bias()
     }
-
 }
 
 struct MainState {
@@ -243,10 +288,12 @@ impl MainState {
         let mut restart_button = UIButton::new(&assets, AssetTag::RestartButton, v2!());
         restart_button.deactivate();
 
+        let perceptron = ecs.new_entity();
+
         let rng = rand::thread_rng();
 
         let bias = 0.01;
-        let learning_rate = 0.0006;
+        let learning_rate = 0.0005;
 
         let s = MainState {
             ecs,
@@ -256,6 +303,7 @@ impl MainState {
                 ground2,
                 cloud,
                 ptero,
+                perceptron,
             },
             obstacle_manager,
             input: InputState::new(),
@@ -372,7 +420,7 @@ impl MainState {
         self.ecs.add_component(self.ent.ground1, ground_spr_1);
         self.ecs.add_component(self.ent.ground1, ground_scr);
 
-        ground_mov.pos.x += w;
+        ground_mov.pos.x += w + 0.;
         self.ecs.add_component(self.ent.ground2, ground_mov);
         self.ecs.add_component(self.ent.ground2, ground_spr_2);
         self.ecs.add_component(self.ent.ground2, ground_scr);
@@ -390,6 +438,16 @@ impl MainState {
         self.ecs.add_component(self.ent.cloud, cloud_mov);
         self.ecs.add_component(self.ent.cloud, cloud_spr);
         self.ecs.add_component(self.ent.cloud, cloud_scr);
+
+        // DRAW PERCEPTRON
+        let perceptron_mov = Movable::new(v2!(0., 100.), v2!(0., 0.), v2!(0., 0.));
+        let perceptron_spr = Sprite::new(AssetTag::Perceptron);
+        let w = self.assets.get_image(AssetTag::Perceptron).unwrap().width() as f32;
+        let perceptron_scr = EndlessScroll::new(w);
+
+        self.ecs.add_component(self.ent.perceptron, perceptron_mov);
+        self.ecs.add_component(self.ent.perceptron, perceptron_spr);
+        self.ecs.add_component(self.ent.perceptron, perceptron_scr);
     }
 
     fn restart(&mut self, ctx: &mut Context) {
@@ -468,28 +526,27 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 Animation:                          self.ent.dino, self.ent.ptero;
             };
 
-            let mut input = perceptron::PerceptronInputs {
-                values: [0.0; perceptron::INPUTS],
-            };
-            input.values[0] = self.obstacle_manager.get_speed();
-            input.values[1] = self.obstacle_manager.get_obstacle_x(&mut self.ecs);
-            input.values[2] = self.obstacle_manager.get_obstacle_y(&mut self.ecs);
+            let (x, y) = self.obstacle_manager.get_obstacle(&mut self.ecs, self.ent.dino);
+            let inputs = &vec![ self.obstacle_manager.get_speed(), x, y ];
 
-            let result = self.rna.predict(&input);
+            let result = self.rna.predict(&inputs);
             if result > 0.5 {
-                self.input.jump_start();
+                if !self.input.jump() {
+                    self.input.jump_start();
+                } else {
+                    self.input.jump_end();
+                }
             }
 
             // Losing the game
             if self
                 .obstacle_manager
-                .check_collision(&mut self.ecs, self.ent.dino)
-            {
+                .check_collision(&mut self.ecs, self.ent.dino) || self.rna.get_population() == 0 {
                 if self.rna.get_population() > 0 {
                     if self.rna.get_actuator() == 1 {
-                        self.rna.adjust(&input, 0.0);
+                        self.rna.adjust(&inputs, 0.0);
                     } else {
-                        self.rna.adjust(&input, 1.0);
+                        self.rna.adjust(&inputs, 1.0);
                     }
                 } else {
                     self.rna.restart();
@@ -516,12 +573,15 @@ impl event::EventHandler<ggez::GameError> for MainState {
                     write_high_score_data(ctx, score);
                 }
 
-                self.restart_button.activate();
-                // self.lose_time = time;
-
                 self.draw(ctx)?;
                 self.input.game_over();
                 self.input.set_restart();
+            } else {
+                if result > 0.5 {
+                    self.rna.adjust(&inputs, 1.);
+                } else {
+                    self.rna.adjust(&inputs, 0.);
+                }
             }
         }
         Ok(())
@@ -560,9 +620,6 @@ impl event::EventHandler<ggez::GameError> for MainState {
             )?;
         }
 
-        self.restart_button
-            .draw(ctx, &self.ecs, &self.assets, 0, v2!(), SCREEN)?;
-
         // Draw colliders:
         if SHOW_COLLIDERS {
             for (col, movable) in iter_zip!(self.ecs, Collider, Movable) {
@@ -573,138 +630,61 @@ impl event::EventHandler<ggez::GameError> for MainState {
                         &mut self.assets,
                         0,
                         movable.pos,
-                        screen_size
+                        screen_size,
                     )?;
                 }
             }
         }
 
-        // PERCEPTRON
-
-        let input_s = graphics::Mesh::new_circle(
-            ctx,
-            graphics::DrawMode::fill(),
-            mint::Point2 { x: -970., y: 100. },
-            40.0,
-            0.2,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(
-            ctx,
-            &input_s,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.get_color()),
-        )?;
-
-        let line_input_s = graphics::Mesh::new_line(
-            ctx,
-            &[Vec2::new(250., 120.), Vec2::new(590., 280.)],
-            4.,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(ctx, &line_input_s, (v2!(0., 0.), 0.0, self.rna.get_color()))?;
-
-        let input_x = graphics::Mesh::new_circle(
-            ctx,
-            graphics::DrawMode::fill(),
-            mint::Point2 { x: -970., y: 300. },
-            40.0,
-            0.2,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(
-            ctx,
-            &input_x,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.get_color()),
-        )?;
-
-        let line_input_x = graphics::Mesh::new_line(
-            ctx,
-            &[Vec2::new(580., 310.), Vec2::new(250., 310.)],
-            4.,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(ctx, &line_input_x, (v2!(0., 0.), 0.0, self.rna.get_color()))?;
-
-        let input_y = graphics::Mesh::new_circle(
-            ctx,
-            graphics::DrawMode::fill(),
-            mint::Point2 { x: -970., y: 500. },
-            40.0,
-            0.2,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(
-            ctx,
-            &input_y,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.get_color()),
-        )?;
-
-        let line_input_y = graphics::Mesh::new_line(
-            ctx,
-            &[Vec2::new(590., 350.), Vec2::new(250., 500.)],
-            4.,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(ctx, &line_input_y, (v2!(0., 0.), 0.0, self.rna.get_color()))?;
-
-        let activation = graphics::Mesh::new_circle(
-            ctx,
-            graphics::DrawMode::fill(),
-            mint::Point2 { x: -545., y: 300. },
-            60.0,
-            0.2,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(
-            ctx,
-            &activation,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.get_color()),
-        )?;
-
-        let line_input_activation = graphics::Mesh::new_line(
-            ctx,
-            &[Vec2::new(900., 310.), Vec2::new(700., 310.)],
-            4.,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(
-            ctx,
-            &line_input_activation,
-            (v2!(0., 0.), 0.0, self.rna.get_color()),
-        )?;
-
-        let output_circle = graphics::Mesh::new_circle(
-            ctx,
-            graphics::DrawMode::fill(),
-            mint::Point2 { x: -250., y: 300. },
-            40.0,
-            0.2,
-            self.rna.get_color(),
-        )?;
-
-        graphics::draw(
-            ctx,
-            &output_circle,
-            (v2!(SCREEN.0 - 15., 15.), 0.0, self.rna.get_color()),
-        )?;
-
         const COL: f32 = 83. / 255.;
 
+        // DRAWING TEXT:
+        let score_str = format!(
+            "Geração {:0>2} População {:0>5} Score: {:0>5}",
+            self.rna.get_generation(),
+            self.rna.get_population(),
+            self.score.cur as u32
+        );
+        let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &score_display,
+            (v2!(15., 15.), 0.0, Color::new(COL, COL, COL, 1.0)),
+        )?;
+
+        // PERCEPTRON
         let s_str = format!("V: {:0.0}", self.obstacle_manager.get_speed() as u32);
         let s_display = graphics::Text::new((s_str, self.assets.font, 20.0));
         graphics::draw(
             ctx,
             &s_display,
             (
-                v2!(SCREEN.0 - 1180., 100.),
+                v2!(SCREEN.0 - 1400., 300.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        let (x, y) = self.obstacle_manager.get_obstacle(&mut self.ecs, self.ent.dino);
+        let x_str = format!("X: {:0.0}", x);
+        let x_display = graphics::Text::new((x_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &x_display,
+            (
+                v2!(SCREEN.0 - 1400., 490.),
+                0.0,
+                Color::new(COL, COL, COL, 1.0),
+            ),
+        )?;
+
+        let y_str = format!("Y: {:0.0}", y);
+        let y_display = graphics::Text::new((y_str, self.assets.font, 20.0));
+        graphics::draw(
+            ctx,
+            &y_display,
+            (
+                v2!(SCREEN.0 - 1400., 680.),
                 0.0,
                 Color::new(COL, COL, COL, 1.0),
             ),
@@ -714,27 +694,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
             "w1: {:0.4}",
             self.rna.get_weights().get(0).unwrap().clone() as f32
         );
-        let w1_display = graphics::Text::new((w1_str, self.assets.font, 20.0));
+        let w1_display = graphics::Text::new((w1_str, self.assets.font, 16.0));
         graphics::draw(
             ctx,
             &w1_display,
             (
-                v2!(SCREEN.0 - 900., 100.),
-                0.0,
-                Color::new(COL, COL, COL, 1.0),
-            ),
-        )?;
-
-        let x_str = format!(
-            "X: {:0.0}",
-            self.obstacle_manager.get_obstacle_x(&mut self.ecs) as u32
-        );
-        let x_display = graphics::Text::new((x_str, self.assets.font, 20.0));
-        graphics::draw(
-            ctx,
-            &x_display,
-            (
-                v2!(SCREEN.0 - 1180., 300.),
+                v2!(SCREEN.0 - 1100., 340.),
                 0.0,
                 Color::new(COL, COL, COL, 1.0),
             ),
@@ -744,27 +709,12 @@ impl event::EventHandler<ggez::GameError> for MainState {
             "w2: {:0.4}",
             self.rna.get_weights().get(1).unwrap().clone() as f32
         );
-        let w2_display = graphics::Text::new((w2_str, self.assets.font, 20.0));
+        let w2_display = graphics::Text::new((w2_str, self.assets.font, 16.0));
         graphics::draw(
             ctx,
             &w2_display,
             (
-                v2!(SCREEN.0 - 900., 280.),
-                0.0,
-                Color::new(COL, COL, COL, 1.0),
-            ),
-        )?;
-
-        let y_str = format!(
-            "Y: {:0.0}",
-            self.obstacle_manager.get_obstacle_y(&mut self.ecs)
-        );
-        let y_display = graphics::Text::new((y_str, self.assets.font, 20.0));
-        graphics::draw(
-            ctx,
-            &y_display,
-            (
-                v2!(SCREEN.0 - 1180., 500.),
+                v2!(SCREEN.0 - 1120., 510.),
                 0.0,
                 Color::new(COL, COL, COL, 1.0),
             ),
@@ -774,24 +724,24 @@ impl event::EventHandler<ggez::GameError> for MainState {
             "w3: {:0.4}",
             self.rna.get_weights().get(2).unwrap().clone() as f32
         );
-        let w3_display = graphics::Text::new((w3_str, self.assets.font, 20.0));
+        let w3_display = graphics::Text::new((w3_str, self.assets.font, 16.0));
         graphics::draw(
             ctx,
             &w3_display,
             (
-                v2!(SCREEN.0 - 900., 500.),
+                v2!(SCREEN.0 - 1100., 650.),
                 0.0,
                 Color::new(COL, COL, COL, 1.0),
             ),
         )?;
 
         let bias_str = format!("Bias: {:0.5}", self.rna.get_bias());
-        let bias_display = graphics::Text::new((bias_str, self.assets.font, 20.0));
+        let bias_display = graphics::Text::new((bias_str, self.assets.font, 16.0));
         graphics::draw(
             ctx,
             &bias_display,
             (
-                v2!(SCREEN.0 - 550., 390.),
+                v2!(SCREEN.0 - 880., 580.),
                 0.0,
                 Color::new(COL, COL, COL, 1.0),
             ),
@@ -806,26 +756,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
             ctx,
             &output_display,
             (
-                v2!(SCREEN.0 - 200., 300.),
-                0.0,
-                Color::new(COL, COL, COL, 1.0),
-            ),
-        )?;
-
-        // Drawing text:
-        let score_str = format!(
-            "Geração {:0>2} -  População {:0>5} - Tempo: {:0>5}",
-            self.rna.get_generation(),
-            self.rna.get_population(),
-            self.score.cur as u32
-        );
-        let score_display = graphics::Text::new((score_str, self.assets.font, 20.0));
-        let text_width = score_display.width(ctx);
-        graphics::draw(
-            ctx,
-            &score_display,
-            (
-                v2!(SCREEN.0 - text_width - 15., 15.),
+                v2!(SCREEN.0 - 530., 490.),
                 0.0,
                 Color::new(COL, COL, COL, 1.0),
             ),

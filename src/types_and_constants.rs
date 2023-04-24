@@ -10,9 +10,9 @@ pub const PTERO_SPEED       : f32 =   100.0;
 
 pub const NUM_OF_COLLIDERS  : usize = 2;
 pub const SHOW_COLLIDERS    : bool = false;
-pub const PAUSE_ENABLED     : bool = false;
+pub const PAUSE_ENABLED     : bool = true;
 
-pub const SCREEN: Screen2 = (1200.0, 1200.0);
+pub const SCREEN: Screen2 = (1800.0, 1200.0);
 pub const DESIRED_FPS: u32 = 60;
 
 pub const RNG_DEFAULT_SEED: u64 = 69420;

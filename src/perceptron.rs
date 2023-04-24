@@ -2,10 +2,6 @@ use rand::Rng;
 
 pub const INPUTS: usize = 3;
 
-pub struct PerceptronInputs {
-    pub values: [f64; INPUTS],
-}
-
 #[derive(Debug)]
 pub struct Perceptron {
     bias: f64,
@@ -28,8 +24,8 @@ impl Perceptron {
                 perceptron.weights[i] = rng.gen_range(-0.99..0.99) + 0.01;
             }
         } else {
-            for (i, x)  in weights.iter().enumerate() {
-                perceptron.weights[i] = x.clone() + rng.gen_range(-0.001..0.001);
+            for (i, w)  in weights.iter().enumerate() {
+                perceptron.weights[i] = w + rng.gen_range(-0.0001..0.0001);
             }
         }
 
@@ -44,20 +40,20 @@ impl Perceptron {
         self.sigmoid(value) * (1. - self.sigmoid(value))
     }
 
-    pub fn predict(&mut self, perceptron_inputs: &PerceptronInputs) -> f64 {
+    pub fn predict(&mut self, inputs: &Vec<f64>) -> f64 {
         let mut weighted_sum: f64 = 0.0;
-        for i in 0..INPUTS {
-            weighted_sum += self.weights[i] * perceptron_inputs.values[i];
+        for i in 0..inputs.len() {
+            weighted_sum += self.weights[i] * inputs[i].clone();
         }
         self.sigmoid(weighted_sum)
     }
 
-    pub fn error(&mut self, value: f64, perceptron_inputs: &PerceptronInputs) {
+    pub fn error(&mut self, value: f64, inputs: &Vec<f64>) {
         let delta = value * self.sigmoid_derivative(value);
-        for (i, v) in perceptron_inputs.values.iter().enumerate() {
+        for (i, v) in inputs.iter().enumerate() {
             self.weights[i] += delta * v * self.learning_rate;
         }
-        self.bias += delta * self.learning_rate;
+        self.bias += delta.abs() * self.learning_rate;
     }
 
     pub fn get_weight(&mut self) -> Vec<f64> {

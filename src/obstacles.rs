@@ -52,10 +52,12 @@ impl ObstaclePool {
         let next = (rng.gen::<u32>() as usize) % self.obstacles.len();
         for i in 0..self.obstacles.len(){
             let ind = (next + i) % self.obstacles.len();
+
             if !self.obstacles[ind].active {
                 self.obstacles[ind].active = true;
                 return Some(self.obstacles[ind].id);
             }
+            
         }
         None
     }
@@ -165,9 +167,9 @@ impl ObstacleManager {
         self.check_for_next_obstacle(ecs, rng, time);
         self.update_scroll_speed(dt);
     }
-    pub fn check_collision(&self, ecs: &ECS, entity_id: usize) -> bool{
+    pub fn check_collision(&self, ecs: &ECS, entity_id: usize) -> bool {
         for i in 0..self.pool.obstacles.len() {
-            if self.pool.obstacles[i].active{
+            if self.pool.obstacles[i].active {
                 if Collider::check_entity_collision(ecs, entity_id, self.pool.obstacles[i].id) {
                     return true;
                 }
@@ -176,43 +178,22 @@ impl ObstacleManager {
         false
     }
 
-    pub fn gep_position(&self, ecs: &ECS) -> Vec2 {
-        for i in 0..self.pool.obstacles.len() {       
-            if self.pool.obstacles[i].active{
-                let obstacle = Collider::get_pos(ecs, self.pool.obstacles[i].id);
+    pub fn get_obstacle(&self, ecs: &ECS, entity_id: usize) -> (f64, f64) {
+        let dino = Collider::get_pos(ecs,  entity_id);
 
-                return obstacle;
-            
+        let mut y = 0.;
+        let mut x = SCREEN.0 as f64;
+        for i in 0..self.pool.obstacles.len() {
+            if self.pool.obstacles[i].active {
+                let obstacle = Collider::get_pos(ecs, self.pool.obstacles[i].id);
+                if x > obstacle.x as f64 {
+                    x = dino.distance(obstacle) as f64;
+                    y = f64::from((GROUND_Y_COORD - obstacle.y) * -1.);
+                } 
             }
         }
-
-        Vec2::new(1200., 65.)
-    }
-
-    pub fn get_obstacle_x(&self, ecs: &ECS) -> f64 {
-        let dino = Collider::get_pos(ecs,  10);
-
-        for i in 0..self.pool.obstacles.len() {       
-            if self.pool.obstacles[i].active{
-                let obstacle = Collider::get_pos(ecs, self.pool.obstacles[i].id);
-                
-                return f64::from(dino.distance(obstacle))         
-            }
-        }
-
-        1200.
-    }
-
-    pub fn get_obstacle_y(&self, ecs: &ECS) -> f64 {
-        for i in 0..self.pool.obstacles.len() {       
-            if self.pool.obstacles[i].active{
-                let obstacle = Collider::get_pos(ecs, self.pool.obstacles[i].id);
-
-                return f64::from((GROUND_Y_COORD - obstacle.y) * -1.);
-            }
-        }
-
-        0.
+        
+        return (x, y);
     }
 
     pub fn get_speed(&self) -> f64 {
